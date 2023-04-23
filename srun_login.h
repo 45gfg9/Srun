@@ -41,6 +41,7 @@ typedef enum srun_login_option {
 void srun_login_init(srun_login_context *context);
 void srun_login_setopt(srun_login_context *context, srun_login_option option, ...);
 void srun_login_perform(srun_login_context *context);
+void srun_logout_perform(srun_login_context *context);
 void srun_login_cleanup(srun_login_context *context);
 
 #define srun_login_setopt(context, option, value) srun_login_setopt(context, option, value)

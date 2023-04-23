@@ -1,0 +1,26 @@
+cmake_minimum_required(VERSION 3.20)
+project(srun_login C)
+project(srun_login VERSION 0.1)
+
+set(CMAKE_C_STANDARD 11)
+
+find_package(CURL REQUIRED)
+find_package(cJson REQUIRED)
+find_package(OpenSSL REQUIRED COMPONENTS Crypto)
+find_package(MbedTLS REQUIRED)
+
+message(STATUS "MbedTLS include path: ${MBEDTLS_INCLUDE_DIR}")
+message(STATUS "MbedTLS include path: ${MBEDTLS_LIBRARIES}")
+message(STATUS "OpenSSL include path: ${OPENSSL_INCLUDE_DIR}")
+message(STATUS "OpenSSL libraries: ${OPENSSL_CRYPTO_LIBRARIES}")
+message(STATUS "CURL include path: ${CURL_INCLUDE_DIR}")
+message(STATUS "CURL libraries: ${CURL_LIBRARIES}")
+message(STATUS "cJson include path: ${CJSON_INCLUDE_DIR}")
+message(STATUS "cJson libraries: ${CJSON_LIBRARIES}")
+
+add_executable(srun_login srun_login.c)
+include_directories(${OPENSSL_INCLUDE_DIR} ${CJSON_INCLUDE_DIR} ${CURL_INCLUDE_DIR} ${MBEDTLS_INCLUDE_DIR})
+target_link_libraries(srun_login PUBLIC ${MBEDTLS_LIBRARIES})
+target_link_libraries(srun_login PUBLIC ${OPENSSL_CRYPTO_LIBRARIES})
+target_link_libraries(srun_login PUBLIC ${CURL_LIBRARIES})
+target_link_libraries(srun_login PUBLIC ${CJSON_LIBRARIES})
