@@ -101,36 +101,26 @@ static size_t x_encode(const uint8_t *src, size_t src_len, const uint8_t *key, s
     return 0;
   }
 
-  uint32_t *encoded_msg = (uint32_t *)calloc(src_len / 4 + (src_len % 4 != 0) + 1, sizeof(uint32_t));
+  uint32_t n = src_len / 4 + (src_len % 4 != 0) + 1;
+  uint32_t *encoded_msg = (uint32_t *)calloc(n, sizeof(uint32_t));
   uint32_t *encoded_key = (uint32_t *)calloc(x_max(4, key_len / 4 + (key_len % 4 != 0)), sizeof(uint32_t));
 
-  size_t encoded_msg_len = s_encode(src, src_len, encoded_msg, 1);
+  s_encode(src, src_len, encoded_msg, 1);
   s_encode(key, key_len, encoded_key, 0);
 
-  uint32_t n = src_len / 4 + (src_len % 4 != 0);
-  uint32_t z = encoded_msg[n];
+  uint32_t z = encoded_msg[n - 1];
   uint32_t d = 0;
 
-  for (uint32_t q = 6 + 52 / (n + 1); q; q--) {
+  for (uint32_t q = 6 + 52 / n; q; q--) {
     d += 0x9e3779b9;
-    uint32_t e = d >> 2 & 3;
     for (uint32_t p = 0; p < n; p++) {
-      uint32_t y = encoded_msg[p + 1];
-      uint32_t m = z >> 5 ^ y << 2;
-      m += ((y >> 3 ^ z << 4) ^ (d ^ y));
-      m += (encoded_key[(p & 3) ^ e] ^ z);
-      encoded_msg[p] += m;
+      uint32_t y = encoded_msg[(p + 1) % n];
+      encoded_msg[p] += (z >> 5 ^ y << 2) + ((y >> 3 ^ z << 4) ^ (d ^ y)) + (encoded_key[(p & 3) ^ (d >> 2 & 3)] ^ z);
       z = encoded_msg[p];
     }
-    uint32_t y = encoded_msg[0];
-    uint32_t m = z >> 5 ^ y << 2;
-    m += ((y >> 3 ^ z << 4) ^ (d ^ y));
-    m += (encoded_key[(n & 3) ^ e] ^ z);
-    encoded_msg[n] += m;
-    z = encoded_msg[n];
   }
 
-  size_t retlen = s_decode(encoded_msg, encoded_msg_len, dst, dst_len);
+  size_t retlen = s_decode(encoded_msg, n, dst, dst_len);
 
   free(encoded_key);
   free(encoded_msg);
