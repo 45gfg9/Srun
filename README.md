@@ -48,7 +48,7 @@ The server certificate needs to be set if your auth server uses HTTPS, and if ei
 
 For security concerns there is no option to skip certificate verification. Evaluate the risk before modifying the code yourself please.
 
-All fields *except server certificate* is copied into the context. The password field is used as HMAC-MD5 key and is freed as soon as the hash completes (and is overwritten with zeroes after that), which also means that two consecutive logins will not work, but why would you do that?
+All fields *except server certificate* is copied into the context. The password field is used as HMAC-MD5 key and the internal buffer is filled with zero before being freed by `srun_cleanup()`.
 
 ### Logout
 

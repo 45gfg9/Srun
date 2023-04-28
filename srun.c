@@ -196,6 +196,9 @@ srun_handle srun_create() {
 }
 
 void srun_cleanup(srun_handle ctx) {
+  if (ctx->password) {
+    memset(ctx->password, 0, strlen(ctx->password));
+  }
   free(ctx->username);
   free(ctx->password);
   free(ctx->client_ip);
@@ -362,9 +365,6 @@ int srun_login(srun_handle handle) {
   mbedtls_md_hmac(mbedtls_md_info_from_type(MBEDTLS_MD_MD5), (const uint8_t *)handle->password,
                   strlen(handle->password), (const uint8_t *)chall, chall_length, (uint8_t *)md5_buf + md_len);
 #endif
-  memset(handle->password, 0, strlen(handle->password));
-  free(handle->password);
-  handle->password = NULL;
   for (int i = 0; i < md_len; i++) {
     snprintf(md5_buf + 2 * i, 3, "%02hhx", md5_buf[md_len + i]);
   }
