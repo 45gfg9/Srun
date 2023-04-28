@@ -1,81 +1,115 @@
-#ifndef __SRUN_LOGIN_H__
-#define __SRUN_LOGIN_H__
+#ifndef __SRUN_H__
+#define __SRUN_H__
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 typedef struct srun_context {
-  // Username; must be set
   char *username;
-  // Password; must be set
   char *password;
-  // Auth server
-  char *auth_server;
-  // Client IP
   char *client_ip;
-  // ac_id
+  char *auth_server;
+  const char *server_cert;
   int ac_id;
 
-  // server ctx_time
-  long ctx_time;
-  // callback random
-  int randnum;
-  // verbosity
   int verbose;
-} srun_context;
+  long ctx_time; // not very useful
+  int randnum; // not very useful
+} *srun_handle;
 
 typedef enum srun_option {
-  SRUNOPT_USERNAME,
-  SRUNOPT_PASSWORD,
+  /**
+   * Authentication server URL. Required.
+   * Type: char *
+   */
   SRUNOPT_AUTH_SERVER,
-  SRUNOPT_CLIENT_IP,
+  /**
+   * Username. Required for login.
+   * Type: char *
+   */
+  SRUNOPT_USERNAME,
+  /**
+   * Password. Required for login.
+   * Type: char *
+   */
+  SRUNOPT_PASSWORD,
+  /**
+   * AC_ID. Required for login. This is usually found in the login page URL or hidden input.
+   * Type: int
+   */
   SRUNOPT_AC_ID,
+  /**
+   * Server certificate. Required if the server uses HTTPS. PEM format. This field is NOT copied.
+   * Type: const char *
+   */
+  SRUNOPT_SERVER_CERT,
+  /**
+   * Client IP. Optional for login. Leave unset to use the default assigned IP.
+   * Type: char *
+   */
+  SRUNOPT_CLIENT_IP,
+  /**
+   * Verbose mode. Optional. Default to 0. NYI.
+   * Type: int
+   */
   SRUNOPT_VERBOSE,
 } srun_option;
 
-#define SRUNE_OK 0
-#define SRUNE_NETWORK -1
-#define SRUNE_INVALID_CTX -2
-
 /**
- * Initialize Srun context. The same context must NOT be initialized twice; or memory leak.
- *
- * @param context An uninitialized context.
+ * Success.
  */
-void srun_init(srun_context *context);
-
-void srun_setopt(srun_context *context, srun_option option, ...);
+#define SRUNE_OK 0
 /**
- * Set option of Srun context.
+ * Network error.
+ */
+#define SRUNE_NETWORK (-1)
+/**
+ * Invalid context (missing fields).
+ */
+#define SRUNE_INVALID_CTX (-2)
+
+/**
+ * Create a new Srun handle. This handle must be freed by `srun_cleanup`.
  *
- * @param context Srun context; must be initialized
+ * @return A new Srun handle
+ */
+srun_handle srun_create();
+
+void srun_setopt(srun_handle handle, srun_option option, ...);
+/**
+ * Set option of Srun handle.
+ *
+ * @param context Srun context
  * @param option
  * @param value
  */
-#define srun_setopt(context, option, value) srun_setopt(context, option, value)
+#define srun_setopt(handle, option, value) srun_setopt(handle, option, value)
 /**
  * Perform login. The username, password, auth server and ac_id must be set.
  *
- * @param context Srun context; must be initialized
- * @return 0 if logged in successfully or device already online; gateway error code or defined error code otherwise
+ * @param handle Srun handle
+ * @return SRUNE_OK if logged in successfully or device already online;
+ *         gateway error code or library defined error code otherwise
  */
-int srun_login(srun_context *context);
+int srun_login(srun_handle handle);
 /**
  * Logout from this session.
  *
- * Auth server needs to be set; other fields are not required
+ * Auth server needs to be set; the certificate must be set too if the server uses HTTPS.
+ * No other fields are required.
  *
- * @param context Srun context; must be initialized first
- * @return 0 if logged out successfully; -1 if network error
+ * @param handle Srun handle
+ * @return SRUNE_OK if logged out successfully;
+ *         SRUNE_NETWORK if network error
  */
-int srun_logout(srun_context *context);
+int srun_logout(srun_handle handle);
 /**
- * Release all allocated resources held by this context
+ * Free all allocated resources held by this handle. You are encouraged to set handle to NULL after this call.
  *
  * @param context Srun context
  */
-void srun_cleanup(srun_context *context);
+void srun_cleanup(srun_handle context);
 
 #ifdef __cplusplus
 }

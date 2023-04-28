@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <getopt.h>
 #include <curl/curl.h>
 
 #ifndef SRUN_LOGIN_AUTH_URL
@@ -13,11 +14,18 @@
 #define SRUN_LOGIN_AC_ID 0
 #endif
 
-int main() {
+static int perform_login() {
+  return 0;
+}
+
+static int perform_logout() {
+  return 0;
+}
+
+int main(int argc, char *const *argv) {
   srand(time(NULL));
 
-  srun_context ctx;
-  srun_init(&ctx);
+  srun_handle ctx = srun_create();
 
   fprintf(stderr, "Username: ");
   char username[32];
@@ -26,19 +34,20 @@ int main() {
 
   char *passwd = getpass("Password: ");
 
-  srun_setopt(&ctx, SRUNOPT_USERNAME, username);
-  srun_setopt(&ctx, SRUNOPT_AUTH_SERVER, SRUN_LOGIN_AUTH_URL);
-  srun_setopt(&ctx, SRUNOPT_AC_ID, SRUN_LOGIN_AC_ID);
-  srun_setopt(&ctx, SRUNOPT_PASSWORD, passwd);
-  srun_setopt(&ctx, SRUNOPT_VERBOSE, 1);
+  srun_setopt(ctx, SRUNOPT_USERNAME, username);
+  srun_setopt(ctx, SRUNOPT_AUTH_SERVER, SRUN_LOGIN_AUTH_URL);
+  srun_setopt(ctx, SRUNOPT_AC_ID, SRUN_LOGIN_AC_ID);
+  srun_setopt(ctx, SRUNOPT_PASSWORD, passwd);
+  srun_setopt(ctx, SRUNOPT_VERBOSE, 1);
   memset(passwd, 0, strlen(passwd));
 
   curl_global_init(CURL_GLOBAL_ALL);
 
-  int result = srun_login(&ctx);
+  int result = srun_login(ctx);
   printf("login result: %d\n", result);
 
-  srun_cleanup(&ctx);
+  srun_cleanup(ctx);
+  ctx = NULL;
 
   curl_global_cleanup();
 }
