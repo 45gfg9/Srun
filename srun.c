@@ -35,11 +35,6 @@
 #include <mbedtls/md.h>
 #include <esp_log.h>
 
-// change this to PEM format certificate for auth server, if your server uses HTTPS
-// begins with "-----BEGIN CERTIFICATE-----"
-// TODO: this should be in context struct
-const char *const AUTH_SERVER_CERT_PEM = NULL;
-
 #define SRUN_LOG_TAG "srun"
 
 #define srun_digest_update(hashctx, data, len) mbedtls_md_update(&hashctx, (const uint8_t *)data, len)
@@ -296,7 +291,7 @@ int srun_login(srun_handle handle) {
   esp_http_client_config_t *config = calloc(1, sizeof(esp_http_client_config_t));
   config->url = url_buf;
   config->method = HTTP_METHOD_GET;
-  config->cert_pem = AUTH_SERVER_CERT_PEM;
+  config->cert_pem = handle->server_cert;
   esp_http_client_handle_t client = esp_http_client_init(config);
 
   if (esp_http_client_open(client, 0) != ESP_OK) {
@@ -580,7 +575,7 @@ int srun_logout(srun_handle handle) {
   esp_http_client_config_t *config = calloc(1, sizeof(esp_http_client_config_t));
   config->url = url_buf;
   config->method = HTTP_METHOD_GET;
-  config->cert_pem = AUTH_SERVER_CERT_PEM;
+  config->cert_pem = handle->server_cert;
   esp_http_client_handle_t client = esp_http_client_init(config);
   esp_err_t err = esp_http_client_perform(client);
   esp_http_client_cleanup(client);
