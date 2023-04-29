@@ -67,6 +67,12 @@ static int curl_req_err(srun_handle ctx, CURLcode code) {
       return 1;
   }
 }
+
+static size_t curl_null_write_cb(const void *ptr, size_t size, size_t nmemb, void *userdata) {
+  (void)ptr;
+  (void)userdata;
+  return size * nmemb;
+}
 #endif
 
 static size_t s_encode(const uint8_t *msg, size_t msg_len, uint32_t *dst, int append_len) {
@@ -543,16 +549,13 @@ int srun_logout(srun_handle handle) {
   size_t buf_size = snprintf(NULL, 0, LOGOUT_FMTSTR, handle->auth_server);
   char *url_buf = malloc(buf_size + 1);
   snprintf(url_buf, buf_size + 1, LOGOUT_FMTSTR, handle->auth_server);
-  FILE *devnull = fopen("/dev/null", "w"); // anybody makes this work on Windows?
 
-  curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, devnull);
+  curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, curl_null_write_cb);
   curl_easy_setopt(curl_handle, CURLOPT_URL, url_buf);
   CURLcode curl_res = curl_easy_perform(curl_handle);
   free(url_buf);
 
   curl_easy_cleanup(curl_handle);
-  fclose(devnull);
-  devnull = NULL;
 
   if (curl_req_err(handle, curl_res)) {
     return SRUNE_NETWORK;

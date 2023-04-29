@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 project(srun C)
-project(srun VERSION 0.3)
+project(srun VERSION 0.5)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_EXTENSIONS OFF)
