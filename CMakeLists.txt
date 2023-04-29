@@ -3,6 +3,7 @@ project(srun C)
 project(srun VERSION 0.3)
 
 set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_EXTENSIONS OFF)
 
 find_package(CURL REQUIRED)
 find_package(cJSON REQUIRED)
