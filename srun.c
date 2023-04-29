@@ -523,12 +523,14 @@ int srun_login(srun_handle handle) {
   free(char_buf);
 
   int ret = SRUNE_OK;
-  if (strlen(cJSON_GetObjectItem(json, "error_msg")->valuestring) != 0) {
+  const char *errmsg = cJSON_GetObjectItem(json, "error_msg")->valuestring;
+  if (strlen(errmsg) != 0) {
     cJSON *ecode = cJSON_GetObjectItem(json, "ecode");
     if (cJSON_IsNumber(ecode)) {
       ret = ecode->valueint;
     } else if (cJSON_IsString(ecode)) {
-      srun_log_v(handle, "gateway error: %s", ecode->valuestring);
+      srun_log_e("Gateway error code: %s", ecode->valuestring);
+      srun_log_e("Message: %s", errmsg);
       ret = (int)strtol(ecode->valuestring + 1, NULL, 10);
     }
   }
