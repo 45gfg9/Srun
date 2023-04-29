@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
+#include <readpassphrase.h>
 #include <getopt.h>
 #include <curl/curl.h>
 
@@ -28,11 +28,12 @@ int main(int argc, char *const *argv) {
   srun_handle ctx = srun_create();
 
   fprintf(stderr, "Username: ");
-  char username[32];
+  char username[128];
   fgets(username, sizeof username, stdin);
   username[strlen(username) - 1] = 0;
 
-  char *passwd = getpass("Password: ");
+  char passwd[128];
+  readpassphrase("Password: ", passwd, sizeof passwd, RPP_ECHO_OFF);
 
   srun_setopt(ctx, SRUNOPT_USERNAME, username);
   srun_setopt(ctx, SRUNOPT_AUTH_SERVER, SRUN_LOGIN_AUTH_URL);

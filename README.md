@@ -7,12 +7,13 @@ The main files `srun.h` and `srun.c` can be dropped into an existing project and
 ## Build for \*nix
 
 Dependencies:
+- libbsd
 - OpenSSL 3
 - LibcURL
 - cJSON
 
 ```sh
-sudo apt install cmake openssl libcurl4-openssl-dev libcjson-dev
+sudo apt install cmake openssl libbsd-dev libcurl4-openssl-dev libcjson-dev
 mkdir build
 cd build
 cmake ..
