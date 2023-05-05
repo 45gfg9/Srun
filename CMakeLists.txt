@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 project(srun C)
-project(srun VERSION 0.5)
+project(srun VERSION 0.6)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_EXTENSIONS OFF)
@@ -8,6 +8,8 @@ set(CMAKE_C_EXTENSIONS OFF)
 find_package(CURL REQUIRED)
 find_package(cJSON REQUIRED)
 find_package(OpenSSL REQUIRED COMPONENTS Crypto)
+
+# TODO: compile time information
 
 #add_compile_options(-fsanitize=address -fno-omit-frame-pointer -g -O0)
 #add_link_options(-fsanitize=address)

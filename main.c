@@ -6,27 +6,125 @@
 #include <getopt.h>
 #include <curl/curl.h>
 
-#ifndef SRUN_LOGIN_AUTH_URL
-#define SRUN_LOGIN_AUTH_URL NULL
-#endif
+// verbosity:
+// -2: completely silent, no error message
+// -1: silent, only print error message
+// 0: normal, print login/logout message
+// 1: verbose, print debug message
+static int verbosity;
 
-#ifndef SRUN_LOGIN_AC_ID
-#define SRUN_LOGIN_AC_ID 0
-#endif
+static const char *prog_name;
 
-static int perform_login() {
-  return 0;
+static char *cert_pem;
+
+static char *read_cert_file(const char *path) {
+  FILE *f = fopen(path, "r");
+  if (!f) {
+    perror(prog_name);
+    return NULL;
+  }
+  free(cert_pem);
+
+  // read file contents
+  fseek(f, 0, SEEK_END);
+  size_t size = ftell(f);
+  fseek(f, 0, SEEK_SET);
+  cert_pem = malloc(size + 1);
+  if (!cert_pem) {
+    perror(prog_name);
+    fclose(f);
+    return NULL;
+  }
+  if (fread(cert_pem, 1, size, f) != size) {
+    perror(prog_name);
+    fclose(f);
+    free(cert_pem);
+    cert_pem = NULL;
+    return NULL;
+  }
+
+  if (!strstr(cert_pem, "-----BEGIN CERTIFICATE-----")) {
+    fprintf(stderr, "Invalid PEM certificate: %s\n", path);
+    free(cert_pem);
+    cert_pem = NULL;
+  }
+
+  return cert_pem;
 }
 
-static int perform_logout() {
-  return 0;
+static void parse_opt(srun_handle handle, int argc, char *const *argv) {
+  static const struct option LONG_OPTS[] = {
+      {"help", no_argument, NULL, 'h'},
+      {"config", required_argument, NULL, 'f'},
+      {"auth-server", required_argument, NULL, 's'},
+      {"username", required_argument, NULL, 'u'},
+      {"password", required_argument, NULL, 'p'},
+      {"ac-id", required_argument, NULL, 'a'},
+      {"cert-file", required_argument, NULL, 'c'},
+      {"quiet", no_argument, NULL, 'q'},
+      {"verbose", optional_argument, NULL, 'v'},
+      {"version", no_argument, NULL, 'V'},
+      {},
+  };
+  static const char *const SHORT_OPTS = "hf:s:u:p:a:c:qvV";
+
+  int c;
+  while ((c = getopt_long(argc, argv, SHORT_OPTS, LONG_OPTS, NULL)) != -1) {
+    printf("c = %c\n", c);
+    printf("optind = %d; optopt = %d; opterr = %d; optreset = %d\n", optind, optopt, opterr, optreset);
+    printf("optarg = %s\n", optarg);
+
+    switch (c) {
+      case 'h':
+        printf("help\n");
+        break;
+      case 'f':
+        printf("config\n");
+        break;
+      case 's':
+        printf("auth-server\n");
+        srun_setopt(handle, SRUNOPT_AUTH_SERVER, optarg);
+        break;
+      case 'u':
+        printf("username\n");
+        srun_setopt(handle, SRUNOPT_USERNAME, optarg);
+        break;
+      case 'p':
+        printf("password\n");
+        srun_setopt(handle, SRUNOPT_PASSWORD, optarg);
+        break;
+      case 'a':
+        printf("ac-id\n");
+        srun_setopt(handle, SRUNOPT_AC_ID, strtol(optarg, NULL, 10));
+        break;
+      case 'c':
+        printf("cert-file\n");
+        free(cert_pem);
+        cert_pem = read_cert_file(optarg);
+        break;
+      case 'q':
+        printf("quiet\n");
+        --verbosity;
+        break;
+      case 'v':
+        printf("verbose\n");
+        if (optarg) {
+          verbosity = (int)strtol(optarg, NULL, 10);
+        } else {
+          ++verbosity;
+        }
+        break;
+      case 'V':
+        printf("version\n");
+        break;
+      default:
+        printf("default\n");
+        break;
+    }
+  }
 }
 
-int main(int argc, char *const *argv) {
-  srand(time(NULL));
-
-  srun_handle ctx = srun_create();
-
+static int perform_login(srun_handle handle) {
   fprintf(stderr, "Username: ");
   char username[128];
   fgets(username, sizeof username, stdin);
@@ -35,20 +133,66 @@ int main(int argc, char *const *argv) {
   char passwd[128];
   readpassphrase("Password: ", passwd, sizeof passwd, RPP_ECHO_OFF);
 
-  srun_setopt(ctx, SRUNOPT_USERNAME, username);
-  srun_setopt(ctx, SRUNOPT_AUTH_SERVER, SRUN_LOGIN_AUTH_URL);
-  srun_setopt(ctx, SRUNOPT_AC_ID, SRUN_LOGIN_AC_ID);
-  srun_setopt(ctx, SRUNOPT_PASSWORD, passwd);
-  srun_setopt(ctx, SRUNOPT_VERBOSE, 1);
+  srun_setopt(handle, SRUNOPT_USERNAME, username);
+  // TODO
+  // srun_setopt(handle, SRUNOPT_AUTH_SERVER, auth_server);
+  // srun_setopt(handle, SRUNOPT_AC_ID, ac_id);
+  srun_setopt(handle, SRUNOPT_PASSWORD, passwd);
+  srun_setopt(handle, SRUNOPT_VERBOSE, 1);
   memset(passwd, 0, strlen(passwd));
 
+  // TODO better logging
+  int result = srun_login(handle);
+  if (result == SRUNE_OK && verbosity > -1) {
+    fprintf(stderr, "Successfully logged in.\n");
+  } else if (result != SRUNE_OK && verbosity > -2) {
+    fprintf(stderr, "Login failed: error %d\n", result);
+  }
+  return result;
+}
+
+static int perform_logout(srun_handle handle) {
+  int result = srun_login(handle);
+  if (result == SRUNE_OK && verbosity > -1) {
+    fprintf(stderr, "Successfully logged out.\n");
+  } else if (result != SRUNE_OK && verbosity > -2) {
+    fprintf(stderr, "Logout failed: error %d\n", result);
+  }
+  return result;
+}
+
+int main(int argc, char *const *argv) {
+  srand(time(NULL));
+
+  int retval = 0;
+
+  prog_name = argv[0];
+  if (argc == 1) {
+    fprintf(stderr, "Please specify login or logout\n");
+    return 1;
+  }
+
   curl_global_init(CURL_GLOBAL_ALL);
+  srun_handle handle = srun_create();
 
-  int result = srun_login(ctx);
-  printf("login result: %d\n", result);
+  const char *action = argv[1];
+  parse_opt(handle, argc, argv);
 
-  srun_cleanup(ctx);
-  ctx = NULL;
+  if (!strcmp(action, "login")) {
+    retval = perform_login(handle) != SRUNE_OK;
+  } else if (!strcmp(action, "logout")) {
+    retval = perform_logout(handle) != SRUNE_OK;
+  } else {
+    fprintf(stderr, "Please specify login or logout\n");
+    retval = 1;
+  }
 
+  srun_cleanup(handle);
+  handle = NULL;
+
+  free(cert_pem);
+  cert_pem = NULL;
   curl_global_cleanup();
+
+  return retval;
 }
