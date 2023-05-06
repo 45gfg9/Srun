@@ -14,10 +14,8 @@ Dependencies:
 
 ```sh
 sudo apt install cmake openssl libbsd-dev libcurl4-openssl-dev libcjson-dev
-mkdir build
-cd build
-cmake ..
-make
+cmake -B cmake-build -DCMAKE_BUILD_TYPE=RelWithDebInfo
+cmake --build cmake-build --config RelWithDebInfo
 ```
 
 ## Build for ESP32
