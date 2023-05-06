@@ -22,7 +22,7 @@ make
 
 ## Build for ESP32
 
-> ESP32 support is not yet stable...?
+> ESP32 support is not fully tested yet!
 
 The ESP32 version uses Mbed TLS library comes along with ESP-IDF. The source should be able to detect this automatically.
 

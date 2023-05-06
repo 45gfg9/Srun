@@ -1,10 +1,16 @@
 #include "srun.h"
+#include "srun_config.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <readpassphrase.h>
 #include <getopt.h>
 #include <curl/curl.h>
+
+#if defined __APPLE__
+#include <readpassphrase.h>
+#else
+#include <bsd/readpassphrase.h>
+#endif
 
 // verbosity:
 // -2: completely silent, no error message
@@ -68,10 +74,11 @@ static void parse_opt(srun_handle handle, int argc, char *const *argv) {
   };
   static const char *const SHORT_OPTS = "hf:s:u:p:a:c:qvV";
 
+  // TODO
   int c;
   while ((c = getopt_long(argc, argv, SHORT_OPTS, LONG_OPTS, NULL)) != -1) {
     printf("c = %c\n", c);
-    printf("optind = %d; optopt = %d; opterr = %d; optreset = %d\n", optind, optopt, opterr, optreset);
+    printf("optind = %d; optopt = %d\n", optind, optopt);
     printf("optarg = %s\n", optarg);
 
     switch (c) {
@@ -125,21 +132,26 @@ static void parse_opt(srun_handle handle, int argc, char *const *argv) {
 }
 
 static int perform_login(srun_handle handle) {
-  fprintf(stderr, "Username: ");
-  char username[128];
-  fgets(username, sizeof username, stdin);
-  username[strlen(username) - 1] = 0;
+  if (!handle->username) {
+    // it's not right if only the password is provided
+    free(handle->password);
+    handle->password = NULL;
 
-  char passwd[128];
-  readpassphrase("Password: ", passwd, sizeof passwd, RPP_ECHO_OFF);
+    fprintf(stderr, "Username: ");
+    char username[128];
+    fgets(username, sizeof username, stdin);
+    username[strlen(username) - 1] = 0;
+    srun_setopt(handle, SRUNOPT_USERNAME, username);
+  }
 
-  srun_setopt(handle, SRUNOPT_USERNAME, username);
-  // TODO
-  // srun_setopt(handle, SRUNOPT_AUTH_SERVER, auth_server);
-  // srun_setopt(handle, SRUNOPT_AC_ID, ac_id);
-  srun_setopt(handle, SRUNOPT_PASSWORD, passwd);
-  srun_setopt(handle, SRUNOPT_VERBOSE, 1);
-  memset(passwd, 0, strlen(passwd));
+  if (!handle->password) {
+    char passwd[128];
+    readpassphrase("Password: ", passwd, sizeof passwd, RPP_ECHO_OFF);
+    srun_setopt(handle, SRUNOPT_PASSWORD, passwd);
+    memset(passwd, 0, strlen(passwd));
+  }
+
+  // srun_setopt(handle, SRUNOPT_VERBOSE, 1);
 
   // TODO better logging
   int result = srun_login(handle);
@@ -177,6 +189,28 @@ int main(int argc, char *const *argv) {
 
   const char *action = argv[1];
   parse_opt(handle, argc, argv);
+
+  // provide default values
+#ifdef SRUN_CONF_AC_ID
+  if (handle->ac_id == 0) {
+    srun_setopt(handle, SRUNOPT_AC_ID, SRUN_CONF_AC_ID);
+  }
+#endif
+#ifdef SRUN_CONF_AUTH_URL
+  if (handle->auth_server == NULL) {
+    srun_setopt(handle, SRUNOPT_AUTH_SERVER, SRUN_CONF_AUTH_URL);
+  }
+#endif
+#ifdef SRUN_CONF_DEFAULT_USERNAME
+  if (handle->username == NULL) {
+    srun_setopt(handle, SRUNOPT_USERNAME, SRUN_CONF_DEFAULT_USERNAME);
+  }
+#endif
+#ifdef SRUN_CONF_DEFAULT_PASSWORD
+  if (handle->password == NULL) {
+    srun_setopt(handle, SRUNOPT_PASSWORD, SRUN_CONF_DEFAULT_PASSWORD);
+  }
+#endif
 
   if (!strcmp(action, "login")) {
     retval = perform_login(handle) != SRUNE_OK;

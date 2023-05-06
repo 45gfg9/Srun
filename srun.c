@@ -183,6 +183,14 @@ static size_t url_encode(char **str) {
   return new_dest_len;
 }
 
+static char *srun_strdup(const char *str) {
+  char *ret = malloc(strlen(str) + 1);
+  if (ret) {
+    strcpy(ret, str);
+  }
+  return ret;
+}
+
 srun_handle srun_create() {
   // allocate a new context
   srun_handle handle = calloc(1, sizeof(struct srun_context));
@@ -330,8 +338,7 @@ int srun_login(srun_handle handle) {
 
   srun_setopt(handle, SRUNOPT_CLIENT_IP, cJSON_GetObjectItem(json, "online_ip")->valuestring);
 
-  // TODO avoid strdup
-  char *chall = strdup(cJSON_GetObjectItem(json, "challenge")->valuestring);
+  char *chall = srun_strdup(cJSON_GetObjectItem(json, "challenge")->valuestring);
   const size_t chall_length = strlen(chall);
   srun_log_v(handle, "chall = %s", chall);
 

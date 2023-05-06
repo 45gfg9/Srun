@@ -1,6 +1,9 @@
 .vscode
 .idea
 
+srun_config.h
+
+build
 cmake-build*
 CMakeLists.txt.user
 CMakeCache.txt
