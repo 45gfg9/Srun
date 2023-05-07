@@ -164,7 +164,7 @@ static int perform_login(srun_handle handle) {
 }
 
 static int perform_logout(srun_handle handle) {
-  int result = srun_login(handle);
+  int result = srun_logout(handle);
   if (result == SRUNE_OK && verbosity > -1) {
     fprintf(stderr, "Successfully logged out.\n");
   } else if (result != SRUNE_OK && verbosity > -2) {
