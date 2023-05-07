@@ -51,10 +51,6 @@ static inline uint8_t checked_subscript(const uint8_t *arr, size_t arr_len, size
   return idx < arr_len ? arr[idx] : 0;
 }
 
-static inline size_t x_max(size_t a, size_t b) {
-  return a > b ? a : b;
-}
-
 #ifndef ESP_PLATFORM
 static int curl_req_err(srun_handle ctx, CURLcode code) {
   switch (code) {
@@ -109,10 +105,10 @@ static size_t x_encode(const uint8_t *src, size_t src_len, const uint8_t *key, s
 
   uint32_t n = src_len / 4 + (src_len % 4 != 0) + 1;
   uint32_t *encoded_msg = (uint32_t *)calloc(n, sizeof(uint32_t));
-  uint32_t *encoded_key = (uint32_t *)calloc(x_max(4, key_len / 4 + (key_len % 4 != 0)), sizeof(uint32_t));
+  uint32_t *encoded_key = (uint32_t *)calloc(4, sizeof(uint32_t));
 
   s_encode(src, src_len, encoded_msg, 1);
-  s_encode(key, key_len, encoded_key, 0);
+  s_encode(key, 16, encoded_key, 0); // assert key_len >= 16
 
   uint32_t z = encoded_msg[n - 1];
   uint32_t d = 0;
