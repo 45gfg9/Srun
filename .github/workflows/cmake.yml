@@ -44,8 +44,6 @@ jobs:
       - name: Build
         run: cmake --build ${{ github.workspace }}/cmake-build --config ${{ env.BUILD_TYPE }}
 
-    #   - name: Test
-
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:
