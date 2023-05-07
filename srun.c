@@ -323,7 +323,7 @@ int srun_login(srun_handle handle) {
   url_buf = NULL;
 #endif
   char_buf[buf_size] = 0;
-  srun_log_v(handle, "server json = %s", char_buf);
+  srun_log_v(handle, "server response: %s", char_buf);
 
   // locate the beginning of json
   cJSON *json = cJSON_Parse(strchr(char_buf, '{'));
@@ -344,15 +344,6 @@ int srun_login(srun_handle handle) {
   buf_size = snprintf(NULL, 0, "%d", handle->ac_id);
   char_buf = malloc(buf_size + 1);
   snprintf(char_buf, buf_size + 1, "%d", handle->ac_id);
-
-  // calculate challenge response
-  // format info string
-  json = cJSON_CreateObject();
-  cJSON_AddStringToObject(json, "username", handle->username);
-  cJSON_AddStringToObject(json, "password", handle->password);
-  cJSON_AddStringToObject(json, "ip", handle->client_ip);
-  cJSON_AddStringToObject(json, "acid", char_buf);
-  cJSON_AddStringToObject(json, "enc_ver", "srun_bx1");
 
   char md5_buf[33];
   unsigned int md_len = sizeof md5_buf / 2;
@@ -400,11 +391,20 @@ int srun_login(srun_handle handle) {
   srun_log_v(handle, "hash update: %s%s", chall, "200");
   srun_log_v(handle, "hash update: %s%s", chall, "1");
 
+  // calculate challenge response
+  // format info string
+  json = cJSON_CreateObject();
+  cJSON_AddStringToObject(json, "username", handle->username);
+  cJSON_AddStringToObject(json, "password", handle->password);
+  cJSON_AddStringToObject(json, "ip", handle->client_ip);
+  cJSON_AddStringToObject(json, "acid", char_buf);
+  cJSON_AddStringToObject(json, "enc_ver", "srun_bx1");
+
   char *formatted = cJSON_PrintUnformatted(json);
   buf_size = strlen(formatted);
   size_t info_len = (buf_size / 4 + (buf_size % 4 != 0) + 1) * 4;
   free(char_buf);
-  char_buf = malloc(info_len);
+  char_buf = malloc(info_len); // x-encoded payload
   x_encode((const uint8_t *)formatted, buf_size, (const uint8_t *)chall, chall_length, (uint8_t *)char_buf, info_len);
 
   cJSON_free(formatted);
@@ -417,9 +417,11 @@ int srun_login(srun_handle handle) {
   strncpy(formatted, "{SRBX1}", buf_size);
   b64_encode((const uint8_t *)char_buf, info_len, formatted + 7, buf_size - 6);
 
-  srun_digest_update(hashctx, formatted, buf_size); // info
+  srun_digest_update(hashctx, formatted, buf_size); // http info param
 
-  srun_log_v(handle, "hash update: %*s%*s", (int)chall_length, chall, (int)buf_size, formatted);
+  srun_log_v(handle, "hash update: %s%s", chall, formatted);
+
+  url_encode(&formatted);
 
   free(char_buf);
   char_buf = NULL;
@@ -441,8 +443,6 @@ int srun_login(srun_handle handle) {
   }
 
   srun_log_v(handle, "sha1 = %s", sha1_buf);
-
-  url_encode(&formatted);
 
   const char *const PORTAL_FMTSTR = "%s" PATH_PORTAL "?callback=jQuery%d_%ld000"
                                     "&_=%ld000"
@@ -474,8 +474,8 @@ int srun_login(srun_handle handle) {
   curl_easy_setopt(curl_handle, CURLOPT_URL, url_buf);
   CURLcode curl_res = curl_easy_perform(curl_handle);
   curl_easy_cleanup(curl_handle);
-
   free(url_buf);
+
   if (curl_req_err(handle, curl_res)) {
     fclose(tmp_file);
 
@@ -520,7 +520,7 @@ int srun_login(srun_handle handle) {
 
   char_buf[buf_size] = 0;
 
-  srun_log_v(handle, "server json: %s", char_buf);
+  srun_log_v(handle, "server response: %s", char_buf);
 
   json = cJSON_Parse(strchr(char_buf, '{'));
   free(char_buf);
@@ -558,9 +558,8 @@ int srun_logout(srun_handle handle) {
   curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, curl_null_write_cb);
   curl_easy_setopt(curl_handle, CURLOPT_URL, url_buf);
   CURLcode curl_res = curl_easy_perform(curl_handle);
-  free(url_buf);
-
   curl_easy_cleanup(curl_handle);
+  free(url_buf);
 
   if (curl_req_err(handle, curl_res)) {
     return SRUNE_NETWORK;
