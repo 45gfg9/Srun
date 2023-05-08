@@ -18,7 +18,7 @@ set(CMAKE_C_EXTENSIONS OFF)
 # so you don't have to provide command line arguments every time
 #set(SRUN_CONF_DEFAULT_USERNAME "TanikazeAmane")
 #set(SRUN_CONF_DEFAULT_PASSWORD "p4ssw@rd")
-#set(SRUN_CONF_SERVER_CERTFILE "example-cert.pem")
+#set(SRUN_CONF_DEFAULT_CERTFILE "example-cert.pem")
 
 # find current Git revision
 find_package(Git)
@@ -31,14 +31,14 @@ if (GIT_FOUND)
             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
 else ()
-    message(WARNING "CMake did not find Git. The compiled binary will not contain revision hash.")
+    set(SRUN_GIT_HASH "unknown")
 endif ()
 
 string(TIMESTAMP SRUN_BUILD_TIME "%Y-%m-%d %H:%M:%S")
 set(SRUN_VERSION "${CMAKE_PROJECT_VERSION}")
 
-if (SRUN_CONF_SERVER_CERTFILE)
-    file(READ "${CMAKE_CURRENT_SOURCE_DIR}/${SRUN_CONF_SERVER_CERTFILE}" SRUN_CONF_DEFAULT_CERT)
+if (SRUN_CONF_DEFAULT_CERTFILE)
+    file(READ "${CMAKE_CURRENT_SOURCE_DIR}/${SRUN_CONF_DEFAULT_CERTFILE}" SRUN_CONF_DEFAULT_CERT)
     string(REPLACE "\n" "\\n" SRUN_CONF_DEFAULT_CERT "${SRUN_CONF_DEFAULT_CERT}")
 endif ()
 
@@ -53,9 +53,7 @@ find_package(OpenSSL REQUIRED COMPONENTS Crypto)
 
 add_executable(${PROJECT_NAME} srun.c main.c)
 include_directories(${OPENSSL_INCLUDE_DIR} ${CJSON_INCLUDE_DIR} ${CURL_INCLUDE_DIR})
-target_link_libraries(${PROJECT_NAME} PUBLIC ${OPENSSL_CRYPTO_LIBRARIES})
-target_link_libraries(${PROJECT_NAME} PUBLIC ${CURL_LIBRARIES})
-target_link_libraries(${PROJECT_NAME} PUBLIC ${CJSON_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} PUBLIC ${OPENSSL_CRYPTO_LIBRARIES} ${CJSON_LIBRARIES} ${CURL_LIBRARIES})
 
 if (NOT APPLE)
     find_package(PkgConfig REQUIRED)
