@@ -10,8 +10,10 @@ set(CMAKE_C_EXTENSIONS OFF)
 #set(SRUN_CONF_AUTH_URL "https://example.com")
 # These two lines are optional
 # Uncomment and modify to provide default credentials
+# so you don't have to provide command line arguments every time
 #set(SRUN_CONF_DEFAULT_USERNAME "TanikazeAmane")
 #set(SRUN_CONF_DEFAULT_PASSWORD "p4ssw@rd")
+#set(SRUN_CONF_SERVER_CERTFILE "example-cert.pem")
 
 # find current Git revision
 find_package(Git)
@@ -29,6 +31,12 @@ endif ()
 
 string(TIMESTAMP SRUN_BUILD_TIME "%Y-%m-%d %H:%M:%S")
 set(SRUN_VERSION "${CMAKE_PROJECT_VERSION}")
+
+if (SRUN_CONF_SERVER_CERTFILE)
+    file(READ "${CMAKE_CURRENT_SOURCE_DIR}/${SRUN_CONF_SERVER_CERTFILE}" SRUN_CONF_DEFAULT_CERT)
+    string(REPLACE "\n" "\\n" SRUN_CONF_DEFAULT_CERT "${SRUN_CONF_DEFAULT_CERT}")
+    message(STATUS "${SRUN_CONF_DEFAULT_CERT}")
+endif ()
 
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/srun_config.h.in" "${CMAKE_CURRENT_SOURCE_DIR}/srun_config.h")
 
