@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 project(srun C)
-project(srun VERSION 0.7)
+project(srun VERSION 0.8)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_EXTENSIONS OFF)
@@ -35,7 +35,6 @@ set(SRUN_VERSION "${CMAKE_PROJECT_VERSION}")
 if (SRUN_CONF_SERVER_CERTFILE)
     file(READ "${CMAKE_CURRENT_SOURCE_DIR}/${SRUN_CONF_SERVER_CERTFILE}" SRUN_CONF_DEFAULT_CERT)
     string(REPLACE "\n" "\\n" SRUN_CONF_DEFAULT_CERT "${SRUN_CONF_DEFAULT_CERT}")
-    message(STATUS "${SRUN_CONF_DEFAULT_CERT}")
 endif ()
 
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/srun_config.h.in" "${CMAKE_CURRENT_SOURCE_DIR}/srun_config.h")

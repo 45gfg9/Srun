@@ -15,13 +15,53 @@
 // verbosity:
 // -2: completely silent, no error message
 // -1: silent, only print error message
-// 0: normal, print login/logout message
+// 0: normal, print only status message
 // 1: verbose, print debug message
+// 2: very verbose, print HTTP request and response
 static int verbosity;
 
 static const char *prog_name;
 
 static char *cert_pem;
+
+static void print_version(void) {
+  printf("Version: %s " SRUN_VERSION " (" SRUN_GIT_HASH "), Built on " SRUN_BUILD_TIME "\n", prog_name);
+}
+
+static void print_help(void) {
+  print_version();
+  printf("Usage: %s login [options]\n", prog_name);
+  printf("       %s logout [options]\n", prog_name);
+  printf("Options:\n");
+  printf("  -h, --help\n");
+  printf("          print this help message and exit\n");
+  printf("  -f, --config=FILE\n");
+  printf("          read options from FILE in JSON format\n");
+  printf("  -s, --auth-server=HOST\n");
+  printf("          use HOST as the authentication server\n");
+  printf("  -u, --username=USERNAME\n");
+  printf("          use USERNAME to login\n");
+  printf("  -p, --password=PASSWORD\n");
+  printf("          use PASSWORD to login\n");
+  printf("  -a, --ac-id=ID\n");
+  printf("          use ID as the AC-ID\n");
+  printf("  -c, --cert-file=FILE\n");
+  printf("          use FILE as the PEM certificate\n");
+  printf("  -q, --quiet\n");
+  printf("          print only error message\n");
+  printf("          -qq to suppress all output\n");
+  printf("  -v, --verbose[=LEVEL]\n");
+  printf("          -vv is the same as --verbose=2\n");
+  printf("          Level 1: print debug message\n");
+  printf("          Level 2: also print HTTP request and response\n");
+  printf("  -V, --version\n");
+  printf("          print version information and exit\n");
+}
+
+static void parse_config(srun_handle handle, const char *path) {
+  printf("config\n");
+  // TODO
+}
 
 static char *read_cert_file(const char *path) {
   FILE *f = fopen(path, "r");
@@ -83,10 +123,10 @@ static void parse_opt(srun_handle handle, int argc, char *const *argv) {
 
     switch (c) {
       case 'h':
-        printf("help\n");
-        break;
+        print_help();
+        exit(0);
       case 'f':
-        printf("config\n");
+        parse_config(handle, optarg);
         break;
       case 's':
         printf("auth-server\n");
@@ -122,8 +162,8 @@ static void parse_opt(srun_handle handle, int argc, char *const *argv) {
         }
         break;
       case 'V':
-        printf("version\n");
-        break;
+        print_version();
+        exit(0);
       default:
         printf("default\n");
         break;
@@ -209,6 +249,11 @@ int main(int argc, char *const *argv) {
 #ifdef SRUN_CONF_DEFAULT_PASSWORD
   if (handle->password == NULL) {
     srun_setopt(handle, SRUNOPT_PASSWORD, SRUN_CONF_DEFAULT_PASSWORD);
+  }
+#endif
+#ifdef SRUN_CONF_DEFAULT_CERT
+  if (handle->server_cert == NULL) {
+    srun_setopt(handle, SRUNOPT_SERVER_CERT, SRUN_CONF_DEFAULT_CERT);
   }
 #endif
 
