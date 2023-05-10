@@ -3,8 +3,14 @@ name: Srun
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+        - "**.md"
+        - "**.yml"
   pull_request:
     branches: [ main ]
+    paths-ignore:
+        - "**.md"
+        - "**.yml"
 
 env:
     BUILD_TYPE: RelWithDebInfo
