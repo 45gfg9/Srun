@@ -7,18 +7,17 @@ cmake_minimum_required(VERSION 3.20)
 project(srun C)
 project(srun VERSION 0.8)
 
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_EXTENSIONS OFF)
-
-# uncomment these lines and change accordingly
+# uncomment these lines to provide default values
+# be aware password is stored in plain-text and can be exported easily
+#
 #set(SRUN_CONF_AC_ID 1)
 #set(SRUN_CONF_AUTH_URL "https://example.com")
-# These two lines are optional
-# Uncomment and modify to provide default credentials
-# so you don't have to provide command line arguments every time
 #set(SRUN_CONF_DEFAULT_USERNAME "TanikazeAmane")
 #set(SRUN_CONF_DEFAULT_PASSWORD "p4ssw@rd")
 #set(SRUN_CONF_DEFAULT_CERTFILE "example-cert.pem")
+
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_EXTENSIONS OFF)
 
 # find current Git revision
 find_package(Git)
