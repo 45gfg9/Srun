@@ -54,60 +54,63 @@ static const char *pathToFilename(const char *path) {
 }
 
 static void print_version(void) {
-  printf("Version: %s " SRUN_VERSION " (" SRUN_GIT_HASH "), Built on " SRUN_BUILD_TIME "\n", prog_name);
-  printf("Configured with:\n");
+  printf("Version: %s " SRUN_VERSION " (" SRUN_GIT_HASH "), Built on " SRUN_BUILD_TIME ".\n", prog_name);
+  puts("Configured with:");
 #ifdef SRUN_CONF_AC_ID
   printf("  ac-id: %d\n", SRUN_CONF_AC_ID);
 #endif
 #ifdef SRUN_CONF_AUTH_URL
-  printf("  Auth server URL: %s\n", SRUN_CONF_AUTH_URL);
+  puts("  Auth server URL: " SRUN_CONF_AUTH_URL);
 #endif
 #ifdef SRUN_CONF_DEFAULT_USERNAME
-  printf("  Default username: %s\n", SRUN_CONF_DEFAULT_USERNAME);
+  puts("  Default username: " SRUN_CONF_DEFAULT_USERNAME);
 #endif
 #ifdef SRUN_CONF_DEFAULT_PASSWORD
-  printf("  Default password set.\n");
+  puts("  Default password set.");
+#endif
+#ifdef SRUN_CONF_DEFAULT_CLIENT_IP
+  puts("  Default client IP: " SRUN_CONF_DEFAULT_CLIENT_IP);
 #endif
 #ifdef SRUN_CONF_DEFAULT_CERT
   // TODO show certificate info
-  printf("  Default certificate set.\n");
+  puts("  Default certificate set.");
 #endif
 }
 
 static void print_help(void) {
   print_version();
   printf("Usage: %s <login | logout> [options]\n", prog_name);
-  printf("Options:\n");
-  printf("  -h, --help\n");
-  printf("          print this help message and exit\n");
-  printf("  -f, --config=FILE\n");
-  printf("          read options from FILE in JSON format\n");
-  printf("  -s, --auth-server=HOST\n");
-  printf("          use HOST as the authentication server\n");
-  printf("  -u, --username=USERNAME\n");
-  printf("          use USERNAME to login\n");
-  printf("  -p, --password=PASSWORD\n");
-  printf("          use PASSWORD to login\n");
-  printf("          If not specified, the program will ask interactively\n");
-  printf("  -i, --client-ip=IP\n");
-  printf("          use IP as the client IP\n");
-  printf("  -a, --ac-id=ID\n");
-  printf("          use ID as the AC-ID\n");
-  printf("  -c, --cert-file=FILE\n");
-  printf("          use FILE as the PEM certificate\n");
-  printf("  -q, --quiet\n");
-  printf("          print only error message\n");
-  printf("          -qq to suppress all output\n");
-  printf("  -v, --verbose[=LEVEL]\n");
-  printf("          -vv is the same as --verbose=2\n");
-  printf("          Level 1: print debug message\n");
-  printf("          Level 2: also print libcurl verbose message\n");
-  printf("  -V, --version\n");
-  printf("          print version information and exit\n");
+  puts("Options:");
+  puts("  -h, --help");
+  puts("          print this help message and exit");
+  puts("  -f, --config=FILE");
+  puts("          read options from FILE in JSON format");
+  puts("  -s, --auth-server=HOST");
+  puts("          use HOST as the authentication server");
+  puts("  -u, --username=USERNAME");
+  puts("          use USERNAME to login");
+  puts("  -p, --password=PASSWORD");
+  puts("          use PASSWORD to login");
+  puts("          If not specified, the program will ask interactively");
+  puts("  -i, --client-ip=IP");
+  puts("          use IP as the client IP");
+  puts("  -a, --ac-id=ID");
+  puts("          use ID as the AC-ID");
+  puts("  -c, --cert-file=FILE");
+  puts("          use FILE as the PEM certificate");
+  puts("  -q, --quiet");
+  puts("          print only error message");
+  puts("          -qq to suppress all output");
+  puts("  -v, --verbose[=LEVEL]");
+  puts("          -vv is the same as --verbose=2");
+  puts("          Level 1: print debug message");
+  puts("          Level 2: also print libcurl verbose message");
+  puts("  -V, --version");
+  puts("          print version information and exit");
 }
 
 static void parse_config(const char *path) {
-  printf("config\n");
+  puts("config");
   // TODO
 }
 
@@ -285,7 +288,7 @@ int main(int argc, char **argv) {
 no_action:
     fprintf(stderr, "Please specify action: login or logout.\n");
     fprintf(stderr, "Try `%s --help' for more information.\n", prog_name);
-    return 1;
+    return -1;
   }
 
   curl_global_init(CURL_GLOBAL_ALL);
