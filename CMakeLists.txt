@@ -33,6 +33,26 @@ else ()
     set(SRUN_GIT_HASH "unknown")
 endif ()
 
+if (APPLE)
+    # have to handle OpenSSL on macOS to use Homebrew version
+    find_package(OpenSSL QUIET)
+    if (NOT OPENSSL_FOUND)
+        execute_process(
+                COMMAND brew --prefix
+                OUTPUT_VARIABLE OPENSSL_ROOT_DIR
+                OUTPUT_STRIP_TRAILING_WHITESPACE
+                ERROR_QUIET
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        )
+        string(APPEND OPENSSL_ROOT_DIR "/opt/openssl")
+    endif ()
+else ()
+    # have to configure libbsd on other platforms
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(LibBSD REQUIRED IMPORTED_TARGET libbsd)
+    target_link_libraries(${PROJECT_NAME} PUBLIC PkgConfig::LibBSD)
+endif ()
+
 string(TIMESTAMP SRUN_BUILD_TIME "%Y-%m-%d %H:%M:%S")
 set(SRUN_VERSION "${CMAKE_PROJECT_VERSION}")
 
@@ -45,7 +65,7 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/srun_config.h.in" "${CMAKE_CURRENT_S
 
 find_package(CURL REQUIRED)
 find_package(cJSON REQUIRED)
-find_package(OpenSSL REQUIRED COMPONENTS Crypto)
+find_package(OpenSSL REQUIRED)
 
 #add_compile_options(-fsanitize=address -fno-omit-frame-pointer -g -O0)
 #add_link_options(-fsanitize=address)
@@ -53,9 +73,3 @@ find_package(OpenSSL REQUIRED COMPONENTS Crypto)
 add_executable(${PROJECT_NAME} srun.c main.c)
 include_directories(${OPENSSL_INCLUDE_DIR} ${CJSON_INCLUDE_DIR} ${CURL_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME} PUBLIC ${OPENSSL_CRYPTO_LIBRARIES} ${CJSON_LIBRARIES} ${CURL_LIBRARIES})
-
-if (NOT APPLE)
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(LibBSD REQUIRED IMPORTED_TARGET libbsd)
-    target_link_libraries(${PROJECT_NAME} PUBLIC PkgConfig::LibBSD)
-endif ()
