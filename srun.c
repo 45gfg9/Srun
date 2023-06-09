@@ -55,6 +55,9 @@
 #define PATH_GET_CHAL "/cgi-bin/get_challenge"
 #define PATH_PORTAL "/cgi-bin/srun_portal"
 
+#define CHALL_N "200"
+#define CHALL_TYPE "1"
+
 struct srun_context {
   char *username;
   char *password;
@@ -402,9 +405,9 @@ int srun_login(srun_handle handle) {
   srun_digest_update(hashctx, chall, chall_length);
   srun_digest_update(hashctx, handle->client_ip, strlen(handle->client_ip));
   srun_digest_update(hashctx, chall, chall_length);
-  srun_digest_update(hashctx, "200", 3); // n
+  srun_digest_update(hashctx, CHALL_N, strlen(CHALL_N)); // n
   srun_digest_update(hashctx, chall, chall_length);
-  srun_digest_update(hashctx, "1", 1); // type
+  srun_digest_update(hashctx, CHALL_TYPE, strlen(CHALL_TYPE)); // type
   srun_digest_update(hashctx, chall, chall_length);
 
   srun_log_v(handle, "md5 = %s", md5_buf);
@@ -412,8 +415,8 @@ int srun_login(srun_handle handle) {
   srun_log_v(handle, "hash update: %s%s", chall, md5_buf);
   srun_log_v(handle, "hash update: %s%s", chall, char_buf);
   srun_log_v(handle, "hash update: %s%s", chall, handle->client_ip);
-  srun_log_v(handle, "hash update: %s%s", chall, "200");
-  srun_log_v(handle, "hash update: %s%s", chall, "1");
+  srun_log_v(handle, "hash update: %s%s", chall, CHALL_N);
+  srun_log_v(handle, "hash update: %s%s", chall, CHALL_TYPE);
 
   // calculate challenge response
   // format info string
