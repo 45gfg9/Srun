@@ -279,14 +279,23 @@ int main(int argc, char **argv) {
   parse_opt(argc, argv);
 
   int action;
+  int all_args_present;
   if (strcmp(action_str, "login") == 0) {
     action = ACTION_LOGIN;
+    all_args_present = cli_args.auth_server[0] && cli_args.ac_id;
   } else if (strcmp(action_str, "logout") == 0) {
     action = ACTION_LOGOUT;
+    all_args_present = cli_args.auth_server[0];
   } else {
     fprintf(stderr, "Invalid action: %s\n", action_str);
 no_action:
     fprintf(stderr, "Please specify action: login or logout.\n");
+    fprintf(stderr, "Try `%s --help' for more information.\n", prog_name);
+    return -1;
+  }
+
+  if (!all_args_present) {
+    fprintf(stderr, "Missing fields for %s.\n", action_str);
     fprintf(stderr, "Try `%s --help' for more information.\n", prog_name);
     return -1;
   }
