@@ -29,6 +29,8 @@ static const char *prog_name;
 struct {
   char auth_server[64];
 
+  char client_ip[64];
+
   char username[64];
 
   char password[128];
@@ -87,6 +89,8 @@ static void print_help(void) {
   printf("  -p, --password=PASSWORD\n");
   printf("          use PASSWORD to login\n");
   printf("          If not specified, the program will ask interactively\n");
+  printf("  -i, --client-ip=IP\n");
+  printf("          use IP as the client IP\n");
   printf("  -a, --ac-id=ID\n");
   printf("          use ID as the AC-ID\n");
   printf("  -c, --cert-file=FILE\n");
@@ -150,13 +154,14 @@ static void parse_opt(int argc, char *const *argv) {
       {"username", required_argument, NULL, 'u'},
       {"password", required_argument, NULL, 'p'},
       {"ac-id", required_argument, NULL, 'a'},
+      {"client-ip", required_argument, NULL, 'i'},
       {"cert-file", required_argument, NULL, 'c'},
       {"quiet", no_argument, NULL, 'q'},
       {"verbose", optional_argument, NULL, 'v'},
       {"version", no_argument, NULL, 'V'},
       {},
   };
-  static const char *const SHORT_OPTS = "hf:s:u:p:a:c:qvV";
+  static const char *const SHORT_OPTS = "hf:s:u:p:a:i:c:qvV";
 
   int c;
   while ((c = getopt_long(argc, argv, SHORT_OPTS, LONG_OPTS, NULL)) != -1) {
@@ -178,6 +183,9 @@ static void parse_opt(int argc, char *const *argv) {
         break;
       case 'a':
         cli_args.ac_id = (int)strtol(optarg, NULL, 10);
+        break;
+      case 'i':
+        strlcpy(cli_args.client_ip, optarg, sizeof cli_args.client_ip);
         break;
       case 'c':
         free(cli_args.cert_pem);
@@ -257,6 +265,9 @@ int main(int argc, char **argv) {
   cli_args.cert_pem = malloc(strlen(SRUN_CONF_DEFAULT_CERT) + 1);
   strcpy(cli_args.cert_pem, SRUN_CONF_DEFAULT_CERT);
 #endif
+#ifdef SRUN_CONF_DEFAULT_CLIENT_IP
+  strlcpy(cli_args.client_ip, SRUN_CONF_DEFAULT_CLIENT_IP, sizeof cli_args.client_ip);
+#endif
 
   prog_name = pathToFilename(argv[0]);
 
@@ -287,6 +298,7 @@ no_action:
   srun_setopt(handle, SRUNOPT_USERNAME, cli_args.username);
   srun_setopt(handle, SRUNOPT_PASSWORD, cli_args.password);
   srun_setopt(handle, SRUNOPT_AC_ID, cli_args.ac_id);
+  srun_setopt(handle, SRUNOPT_CLIENT_IP, cli_args.client_ip);
   srun_setopt(handle, SRUNOPT_SERVER_CERT, cli_args.cert_pem);
   srun_setopt(handle, SRUNOPT_VERBOSITY, cli_args.verbosity);
 

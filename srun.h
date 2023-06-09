@@ -45,7 +45,7 @@ typedef enum srun_option {
    */
   SRUNOPT_CLIENT_IP,
   /**
-   * Verbose mode. Optional. Default to 0. NYI.
+   * Verbose mode. Optional. Default to 0.
    * Type: int
    */
   SRUNOPT_VERBOSITY,
