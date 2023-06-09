@@ -11,18 +11,7 @@
 extern "C" {
 #endif
 
-typedef struct srun_context {
-  char *username;
-  char *password;
-  char *client_ip;
-  char *auth_server;
-  const char *server_cert;
-  int ac_id;
-
-  int verbose;
-  long ctx_time; // not very useful
-  int randnum; // not very useful
-} *srun_handle;
+typedef struct srun_context *srun_handle;
 
 typedef enum srun_option {
   /**
@@ -59,7 +48,7 @@ typedef enum srun_option {
    * Verbose mode. Optional. Default to 0. NYI.
    * Type: int
    */
-  SRUNOPT_VERBOSE,
+  SRUNOPT_VERBOSITY,
 } srun_option;
 
 /**

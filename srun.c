@@ -18,15 +18,17 @@
 
 #define srun_digest_update(hashctx, data, len) EVP_DigestUpdate(hashctx, data, len)
 
-#define srun_log_e(fmt, ...)             \
-  do {                                   \
-    fprintf(stderr, fmt, ##__VA_ARGS__); \
-    fputc('\n', stderr);                 \
+#define srun_log_e(handle, fmt, ...)       \
+  do {                                     \
+    if (handle->verbosity >= -1) {         \
+      fprintf(stderr, fmt, ##__VA_ARGS__); \
+      fputc('\n', stderr);                 \
+    }                                      \
   } while (0)
 
 #define srun_log_v(handle, fmt, ...)           \
   do {                                         \
-    if (handle->verbose) {                     \
+    if (handle->verbosity >= 1) {              \
       fprintf(stderr, "[%s]: ", __FUNCTION__); \
       fprintf(stderr, fmt, ##__VA_ARGS__);     \
       fputc('\n', stderr);                     \
@@ -53,19 +55,32 @@
 #define PATH_GET_CHAL "/cgi-bin/get_challenge"
 #define PATH_PORTAL "/cgi-bin/srun_portal"
 
+struct srun_context {
+  char *username;
+  char *password;
+  char *client_ip;
+  char *auth_server;
+  const char *server_cert;
+  int ac_id;
+
+  int verbosity;
+  long ctx_time; // not very useful
+  int randnum;   // not very useful
+};
+
 static inline uint8_t checked_subscript(const uint8_t *arr, size_t arr_len, size_t idx) {
   return idx < arr_len ? arr[idx] : 0;
 }
 
 #ifndef ESP_PLATFORM
-static int curl_req_err(srun_handle ctx, CURLcode code) {
+static int curl_req_err(srun_handle handle, CURLcode code) {
   switch (code) {
     case CURLE_OK:
       return 0;
     case CURLE_COULDNT_RESOLVE_HOST:
-      srun_log_e("Could not resolve host %s. Are you connected to the right network?", ctx->auth_server);
+      srun_log_e(handle, "Could not resolve host %s. Are you connected to the right network?", handle->auth_server);
     default:
-      srun_log_e("libcurl returned error %d: %s", code, curl_easy_strerror(code));
+      srun_log_e(handle, "libcurl returned error %d: %s", code, curl_easy_strerror(code));
       return 1;
   }
 }
@@ -201,15 +216,15 @@ srun_handle srun_create() {
   return handle;
 }
 
-void srun_cleanup(srun_handle ctx) {
-  if (ctx->password) {
-    memset(ctx->password, 0, strlen(ctx->password));
+void srun_cleanup(srun_handle handle) {
+  if (handle->password) {
+    memset(handle->password, 0, strlen(handle->password));
   }
-  free(ctx->username);
-  free(ctx->password);
-  free(ctx->client_ip);
-  free(ctx->auth_server);
-  free(ctx);
+  free(handle->username);
+  free(handle->password);
+  free(handle->client_ip);
+  free(handle->auth_server);
+  free(handle);
 }
 
 void srun_setopt(srun_handle handle, srun_option option, ...) {
@@ -246,8 +261,8 @@ void srun_setopt(srun_handle handle, srun_option option, ...) {
       handle->client_ip = realloc(handle->client_ip, strlen(src_str) + 1);
       strcpy(handle->client_ip, src_str);
       break;
-    case SRUNOPT_VERBOSE:
-      handle->verbose = va_arg(args, int);
+    case SRUNOPT_VERBOSITY:
+      handle->verbosity = va_arg(args, int);
       break;
   }
 
@@ -282,7 +297,9 @@ int srun_login(srun_handle handle) {
   FILE *tmp_file = tmpfile();
   curl_easy_setopt(curl_handle, CURLOPT_URL, url_buf);
   curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, tmp_file);
-  // curl_easy_setopt(curl_handle, CURLOPT_VERBOSE, 1L);
+  if (handle->verbosity >= 2) {
+    curl_easy_setopt(curl_handle, CURLOPT_VERBOSE, 1L);
+  }
 
   free(url_buf);
   url_buf = NULL;
@@ -301,6 +318,7 @@ int srun_login(srun_handle handle) {
   config->url = url_buf;
   config->method = HTTP_METHOD_GET;
   config->cert_pem = handle->server_cert;
+  config->buffer_size_tx = 768;
   esp_http_client_handle_t client = esp_http_client_init(config);
 
   if (esp_http_client_open(client, 0) != ESP_OK) {
@@ -538,8 +556,8 @@ int srun_login(srun_handle handle) {
     if (cJSON_IsNumber(ecode)) {
       ret = ecode->valueint;
     } else if (cJSON_IsString(ecode)) {
-      srun_log_e("Gateway error code: %s", ecode->valuestring);
-      srun_log_e("Message: %s", errmsg);
+      srun_log_e(handle, "Gateway error code: %s", ecode->valuestring);
+      srun_log_e(handle, "Message: %s", errmsg);
       ret = (int)strtol(ecode->valuestring + 1, NULL, 10);
     }
   }
@@ -563,6 +581,10 @@ int srun_logout(srun_handle handle) {
 
   curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, curl_null_write_cb);
   curl_easy_setopt(curl_handle, CURLOPT_URL, url_buf);
+  if (handle->verbosity >= 2) {
+    curl_easy_setopt(curl_handle, CURLOPT_VERBOSE, 1L);
+  }
+
   CURLcode curl_res = curl_easy_perform(curl_handle);
   curl_easy_cleanup(curl_handle);
   free(url_buf);
