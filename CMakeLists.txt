@@ -61,6 +61,11 @@ if (SRUN_CONF_DEFAULT_CERTFILE)
     string(REPLACE "\n" "\\n" SRUN_CONF_DEFAULT_CERT "${SRUN_CONF_DEFAULT_CERT}")
 endif ()
 
+if (NOT SRUN_CONF_DEFAULT_USERNAME AND SRUN_CONF_DEFAULT_PASSWORD)
+    message(WARNING "Cannot set password without username")
+    unset(SRUN_CONF_DEFAULT_PASSWORD)
+endif ()
+
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/srun_config.h.in" "${CMAKE_CURRENT_SOURCE_DIR}/srun_config.h")
 
 find_package(CURL REQUIRED)
