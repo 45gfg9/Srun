@@ -204,9 +204,6 @@ static void parse_opt(int argc, char *const *argv) {
       case 'V':
         print_version();
         exit(0);
-      default:
-        printf("default\n");
-        break;
     }
   }
 }
