@@ -5,7 +5,7 @@
 
 cmake_minimum_required(VERSION 3.20)
 project(srun C)
-project(srun VERSION 0.8)
+project(srun VERSION 0.9)
 
 # uncomment these lines to provide default values
 # be aware password is stored in plain-text and can be exported easily
@@ -18,6 +18,7 @@ project(srun VERSION 0.8)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_EXTENSIONS OFF)
+add_executable(${PROJECT_NAME} srun.c main.c)
 
 # find current Git revision
 find_package(Git)
@@ -75,6 +76,5 @@ find_package(OpenSSL REQUIRED)
 #add_compile_options(-fsanitize=address -fno-omit-frame-pointer -g -O0)
 #add_link_options(-fsanitize=address)
 
-add_executable(${PROJECT_NAME} srun.c main.c)
 include_directories(${OPENSSL_INCLUDE_DIR} ${CJSON_INCLUDE_DIR} ${CURL_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME} PUBLIC ${OPENSSL_CRYPTO_LIBRARIES} ${CJSON_LIBRARIES} ${CURL_LIBRARIES})
