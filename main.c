@@ -158,7 +158,6 @@ static void parse_opt(int argc, char *const *argv) {
   };
   static const char *const SHORT_OPTS = "hf:s:u:p:a:c:qvV";
 
-  // TODO
   int c;
   while ((c = getopt_long(argc, argv, SHORT_OPTS, LONG_OPTS, NULL)) != -1) {
     switch (c) {
@@ -169,32 +168,25 @@ static void parse_opt(int argc, char *const *argv) {
         parse_config(optarg);
         break;
       case 's':
-        printf("auth-server\n");
         strlcpy(cli_args.auth_server, optarg, sizeof cli_args.auth_server);
         break;
       case 'u':
-        printf("username\n");
         strlcpy(cli_args.username, optarg, sizeof cli_args.username);
         break;
       case 'p':
-        printf("password\n");
         strlcpy(cli_args.password, optarg, sizeof cli_args.password);
         break;
       case 'a':
-        printf("ac-id\n");
         cli_args.ac_id = (int)strtol(optarg, NULL, 10);
         break;
       case 'c':
-        printf("cert-file\n");
         free(cli_args.cert_pem);
         cli_args.cert_pem = read_cert_file(optarg);
         break;
       case 'q':
-        printf("quiet\n");
         --cli_args.verbosity;
         break;
       case 'v':
-        printf("verbose\n");
         if (optarg) {
           cli_args.verbosity = (int)strtol(optarg, NULL, 10);
         } else {
