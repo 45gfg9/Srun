@@ -303,6 +303,12 @@ int srun_login(srun_handle handle) {
     curl_easy_setopt(curl_handle, CURLOPT_VERBOSE, 1L);
   }
 
+  if (handle->server_cert) {
+    struct curl_blob cert_blob = {
+        .data = (void *)handle->server_cert, .len = strlen(handle->server_cert), .flags = CURL_BLOB_NOCOPY};
+    curl_easy_setopt(curl_handle, CURLOPT_CAINFO_BLOB, &cert_blob);
+  }
+
   free(url_buf);
   url_buf = NULL;
   if (curl_req_err(handle, curl_easy_perform(curl_handle))) {

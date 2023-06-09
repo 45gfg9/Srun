@@ -5,7 +5,7 @@
 
 cmake_minimum_required(VERSION 3.20)
 project(srun C)
-project(srun VERSION 0.10)
+project(srun VERSION 0.11)
 
 # uncomment these lines to provide default values
 # be aware password is stored in plain-text and can be exported easily

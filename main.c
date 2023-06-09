@@ -73,7 +73,7 @@ static void print_version(void) {
 #endif
 #ifdef SRUN_CONF_DEFAULT_CERT
   // TODO show certificate info
-  puts("  Default certificate set.");
+  puts("  Default CA certificate set.");
 #endif
 }
 
