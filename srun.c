@@ -67,8 +67,6 @@ struct srun_context {
   int ac_id;
 
   int verbosity;
-  long ctx_time; // not very useful
-  int randnum;   // not very useful
 };
 
 static inline uint8_t checked_subscript(const uint8_t *arr, size_t arr_len, size_t idx) {
@@ -107,6 +105,7 @@ static size_t s_encode(const uint8_t *msg, size_t msg_len, uint32_t *dst, int ap
   return msg_len / 4 + (msg_len % 4 != 0) + append_len;
 }
 
+// named `l_encode` in the original javascript code
 static size_t s_decode(const uint32_t *msg, size_t msg_len, uint8_t *dst, size_t dst_len) {
   size_t retlen = msg_len * 4;
 
@@ -215,7 +214,6 @@ srun_handle srun_create() {
   // allocate a new context
   srun_handle handle = calloc(1, sizeof(struct srun_context));
   srun_setopt(handle, SRUNOPT_CLIENT_IP, "0.0.0.0");
-  handle->randnum = rand();
   return handle;
 }
 
@@ -280,19 +278,20 @@ int srun_login(srun_handle handle) {
     return SRUNE_INVALID_CTX;
   }
 
-  handle->ctx_time = time(NULL);
+  uint32_t ctx_time = time(NULL);
+  int randnum = rand();
 
   const char *const CHAL_FMTSTR = "%s" PATH_GET_CHAL "?username=%s"
                                   "&ip=%s"
                                   "&callback=jQuery_%d_%ld000"
                                   "&_=%ld000";
 
-  size_t url_len = snprintf(NULL, 0, CHAL_FMTSTR, handle->auth_server, handle->username, handle->client_ip,
-                            handle->randnum, handle->ctx_time, handle->ctx_time);
+  size_t url_len = snprintf(NULL, 0, CHAL_FMTSTR, handle->auth_server, handle->username, handle->client_ip, randnum,
+                            ctx_time, ctx_time);
 
   char *url_buf = malloc(url_len + 1);
-  snprintf(url_buf, url_len + 1, CHAL_FMTSTR, handle->auth_server, handle->username, handle->client_ip, handle->randnum,
-           handle->ctx_time, handle->ctx_time);
+  snprintf(url_buf, url_len + 1, CHAL_FMTSTR, handle->auth_server, handle->username, handle->client_ip, randnum,
+           ctx_time, ctx_time);
   srun_log_v(handle, "full URL: %s", url_buf);
 
 #ifndef ESP_PLATFORM
@@ -357,7 +356,7 @@ int srun_login(srun_handle handle) {
   free(char_buf);
   char_buf = NULL;
 
-  handle->ctx_time = cJSON_GetObjectItem(json, "st")->valueint;
+  ctx_time = cJSON_GetObjectItem(json, "st")->valueint;
 
   srun_setopt(handle, SRUNOPT_CLIENT_IP, cJSON_GetObjectItem(json, "online_ip")->valuestring);
 
@@ -486,11 +485,11 @@ int srun_login(srun_handle handle) {
                                     "&name=Linux"
                                     "&double_stack=0";
 
-  url_len = snprintf(NULL, 0, PORTAL_FMTSTR, handle->auth_server, handle->randnum, handle->ctx_time, handle->ctx_time,
-                     handle->username, md5_buf, handle->ac_id, handle->client_ip, sha1_buf, formatted);
+  url_len = snprintf(NULL, 0, PORTAL_FMTSTR, handle->auth_server, randnum, ctx_time, ctx_time, handle->username,
+                     md5_buf, handle->ac_id, handle->client_ip, sha1_buf, formatted);
   url_buf = malloc(url_len + 1);
-  snprintf(url_buf, url_len + 1, PORTAL_FMTSTR, handle->auth_server, handle->randnum, handle->ctx_time,
-           handle->ctx_time, handle->username, md5_buf, handle->ac_id, handle->client_ip, sha1_buf, formatted);
+  snprintf(url_buf, url_len + 1, PORTAL_FMTSTR, handle->auth_server, randnum, ctx_time, ctx_time, handle->username,
+           md5_buf, handle->ac_id, handle->client_ip, sha1_buf, formatted);
 
   free(formatted);
   formatted = NULL;
