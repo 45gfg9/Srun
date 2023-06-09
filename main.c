@@ -279,9 +279,9 @@ int main(int argc, char **argv) {
   parse_opt(argc, argv);
 
   int action;
-  if (strcasecmp(action_str, "login") == 0) {
+  if (strcmp(action_str, "login") == 0) {
     action = ACTION_LOGIN;
-  } else if (strcasecmp(action_str, "logout") == 0) {
+  } else if (strcmp(action_str, "logout") == 0) {
     action = ACTION_LOGOUT;
   } else {
     fprintf(stderr, "Invalid action: %s\n", action_str);
