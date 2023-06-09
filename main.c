@@ -213,17 +213,16 @@ static void parse_opt(int argc, char *const *argv) {
 
 static int perform_login(srun_handle handle) {
   if (cli_args.username[0] == 0) {
-    // it's not right if only the password is provided
+    // can't set password without username
     memset(cli_args.password, 0, sizeof cli_args.password);
 
-    fprintf(stderr, "Username: ");
-    fgets(cli_args.username, sizeof cli_args.username, stdin);
-    cli_args.username[strlen(cli_args.username) - 1] = 0; // remove trailing newline
+    readpassphrase("Username: ", cli_args.username, sizeof cli_args.username, RPP_ECHO_ON);
+    srun_setopt(handle, SRUNOPT_USERNAME, cli_args.username);
   }
 
   if (cli_args.password[0] == 0) {
     readpassphrase("Password: ", cli_args.password, sizeof cli_args.password, RPP_ECHO_OFF);
-    memset(cli_args.password, 0, strlen(cli_args.password));
+    srun_setopt(handle, SRUNOPT_PASSWORD, cli_args.password);
   }
 
   int result = srun_login(handle);
