@@ -51,7 +51,7 @@ jobs:
         run: cmake --build ${{ github.workspace }}/cmake-build --config ${{ env.BUILD_TYPE }}
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: Srun-${{ runner.os }}-${{ github.run_number }}
           path: |
