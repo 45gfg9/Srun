@@ -278,7 +278,7 @@ int srun_login(srun_handle handle) {
     return SRUNE_INVALID_CTX;
   }
 
-  uint32_t ctx_time = time(NULL);
+  unsigned long ctx_time = time(NULL);
   int randnum = rand();
 
   const char *const CHAL_FMTSTR = "%s" PATH_GET_CHAL "?username=%s"
