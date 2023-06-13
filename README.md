@@ -20,7 +20,7 @@ cmake --build cmake-build --config RelWithDebInfo
 
 ## Build for ESP32
 
-> ESP32 support is not fully tested yet!
+> ESP32 support is not fully tested yet, but it should work now.
 
 The ESP32 version uses Mbed TLS library comes along with ESP-IDF. The source should be able to detect this automatically.
 
@@ -30,9 +30,9 @@ The ESP32 version uses Mbed TLS library comes along with ESP-IDF. The source sho
 
 ```c
 srun_handle handle = srun_create();
-srun_setopt(handle, SRUNOPT_USERNAME, "username");
 srun_setopt(handle, SRUNOPT_AUTH_SERVER, "auth server URL");
-srun_setopt(handle, SRUNOPT_AC_ID, AUTH_SERVER_AC_ID); // int type
+srun_setopt(handle, SRUNOPT_AC_ID, 1);
+srun_setopt(handle, SRUNOPT_USERNAME, "username");
 srun_setopt(handle, SRUNOPT_PASSWORD, "password");
 srun_setopt(handle, SRUNOPT_SERVER_CERT, "auth server certificate (PEM format)"); // explained below
 printf("login result: %d\n", srun_login(handle));
@@ -40,7 +40,7 @@ srun_cleanup(handle);
 handle = NULL;
 ```
 
-The server certificate needs to be set if your auth server uses HTTPS, and if either:
+The server CA certificate needs to be set if your auth server uses HTTPS, and if either:
 
 - you are running on ESP32
 - your auth server uses a self-signed certificate (that is not trusted by your system's global CA store)
@@ -60,4 +60,4 @@ srun_cleanup(handle);
 handle = NULL;
 ```
 
-Username, password and ac_id are not needed when logging out.
+Username, password and ac_id are not needed when logging out. The same context used for login may be reused.
