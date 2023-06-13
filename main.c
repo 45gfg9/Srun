@@ -191,8 +191,7 @@ static void parse_opt(int argc, char *const *argv) {
         strlcpy(cli_args.client_ip, optarg, sizeof cli_args.client_ip);
         break;
       case 'c':
-        free(cli_args.cert_pem);
-        cli_args.cert_pem = read_cert_file(optarg);
+        read_cert_file(optarg);
         break;
       case 'q':
         --cli_args.verbosity;
@@ -321,7 +320,6 @@ no_action:
   handle = NULL;
 
   free(cli_args.cert_pem);
-  cli_args.cert_pem = NULL;
   curl_global_cleanup();
 
   memset(&cli_args, 0, sizeof cli_args);
