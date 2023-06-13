@@ -20,9 +20,6 @@ jobs:
     strategy:
       matrix:
         os: [ ubuntu-latest, macos-latest ]
-        include:
-          - os: macos-latest
-            cmakeopts: -DOPENSSL_ROOT_DIR=$(brew --prefix)/opt/openssl@3
 
     name: ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -35,8 +32,7 @@ jobs:
         if: ${{ runner.os == 'macOS' }}
         run: |
           brew update
-          brew install cjson
-          brew link --force openssl curl
+          brew install cmake openssl cjson
 
       - name: 'Linux: Install dependencies'
         if: ${{ runner.os == 'Linux' }}
@@ -45,7 +41,7 @@ jobs:
           sudo apt-get install -y cmake libbsd-dev libcurl4-openssl-dev libcjson-dev
 
       - name: Configure
-        run: cmake -B ${{ github.workspace }}/cmake-build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} ${{ matrix.cmakeopts }}
+        run: cmake -B ${{ github.workspace }}/cmake-build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
 
       - name: Build
         run: cmake --build ${{ github.workspace }}/cmake-build --config ${{ env.BUILD_TYPE }}
