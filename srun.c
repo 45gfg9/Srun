@@ -47,7 +47,7 @@
 
 #define srun_digest_update(hashctx, data, len) mbedtls_md_update(&hashctx, (const uint8_t *)data, len)
 
-#define srun_log_e(fmt, ...) ESP_LOGE(SRUN_LOG_TAG, fmt, ##__VA_ARGS__)
+#define srun_log_e(ctx, fmt, ...) ESP_LOGE(SRUN_LOG_TAG, fmt, ##__VA_ARGS__)
 #define srun_log_v(ctx, fmt, ...) ESP_LOGV(SRUN_LOG_TAG, fmt, ##__VA_ARGS__)
 
 #endif
@@ -330,7 +330,7 @@ int srun_login(srun_handle handle) {
   esp_http_client_handle_t client = esp_http_client_init(config);
 
   if (esp_http_client_open(client, 0) != ESP_OK) {
-    srun_log_e("failed to open connection");
+    srun_log_e(handle, "failed to open connection");
     esp_http_client_cleanup(client);
     free(config);
     free(url_buf);
@@ -341,7 +341,7 @@ int srun_login(srun_handle handle) {
   size_t buf_size = esp_http_client_fetch_headers(client);
   int status_code = esp_http_client_get_status_code(client);
   if (status_code != 200) {
-    srun_log_e("server responsed status code %d", status_code);
+    srun_log_e(handle, "server responsed status code %d", status_code);
     esp_http_client_cleanup(client);
     free(config);
     free(url_buf);
@@ -523,7 +523,7 @@ int srun_login(srun_handle handle) {
   esp_http_client_set_url(client, url_buf);
 
   if (esp_http_client_open(client, 0) != ESP_OK) {
-    srun_log_e("failed to open connection");
+    srun_log_e(handle, "failed to open connection");
     esp_http_client_cleanup(client);
     free(config);
     free(url_buf);
@@ -534,7 +534,7 @@ int srun_login(srun_handle handle) {
   buf_size = esp_http_client_fetch_headers(client);
   status_code = esp_http_client_get_status_code(client);
   if (status_code != 200) {
-    srun_log_e("server responsed status code %d", status_code);
+    srun_log_e(handle, "server responsed status code %d", status_code);
     esp_http_client_cleanup(client);
     free(config);
     free(url_buf);
@@ -615,7 +615,7 @@ int srun_logout(srun_handle handle) {
   free(config);
   free(url_buf);
   if (err != ESP_OK) {
-    srun_log_e("failed to open connection");
+    srun_log_e(handle, "failed to open connection");
 
     return SRUNE_NETWORK;
   }
