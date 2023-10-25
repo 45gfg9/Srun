@@ -74,8 +74,5 @@ find_package(CURL REQUIRED)
 find_package(cJSON REQUIRED)
 find_package(OpenSSL REQUIRED)
 
-#add_compile_options(-fsanitize=address -fno-omit-frame-pointer -g -O0)
-#add_link_options(-fsanitize=address)
-
 include_directories(${OPENSSL_INCLUDE_DIR} ${CJSON_INCLUDE_DIR} ${CURL_INCLUDE_DIR})
-target_link_libraries(${PROJECT_NAME} PUBLIC ${OPENSSL_CRYPTO_LIBRARIES} ${CJSON_LIBRARIES} ${CURL_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} PUBLIC ${OPENSSL_LIBRARIES} ${CJSON_LIBRARIES} ${CURL_LIBRARIES})

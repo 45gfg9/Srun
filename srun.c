@@ -16,7 +16,7 @@
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 
-#define srun_digest_update(hashctx, data, len) EVP_DigestUpdate(hashctx, data, len)
+#define srun_digest_update(hashctx, data, len) EVP_DigestUpdate((hashctx), (data), (len))
 
 #define srun_log_e(handle, fmt, ...)       \
   do {                                     \
@@ -45,7 +45,7 @@
 
 #define SRUN_LOG_TAG "srun"
 
-#define srun_digest_update(hashctx, data, len) mbedtls_md_update(&hashctx, (const uint8_t *)data, len)
+#define srun_digest_update(hashctx, data, len) mbedtls_md_update(&(hashctx), (const uint8_t *)(data), (len))
 
 #define srun_log_e(ctx, fmt, ...) ESP_LOGE(SRUN_LOG_TAG, fmt, ##__VA_ARGS__)
 #define srun_log_v(ctx, fmt, ...) ESP_LOGV(SRUN_LOG_TAG, fmt, ##__VA_ARGS__)
@@ -80,6 +80,7 @@ static int curl_req_err(srun_handle handle, CURLcode code) {
       return 0;
     case CURLE_COULDNT_RESOLVE_HOST:
       srun_log_e(handle, "Could not resolve host %s. Are you connected to the right network?", handle->auth_server);
+      // fallthrough
     default:
       srun_log_e(handle, "libcurl returned error %d: %s", code, curl_easy_strerror(code));
       return 1;

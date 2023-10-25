@@ -55,25 +55,35 @@ static const char *pathToFilename(const char *path) {
 
 static void print_version(void) {
   printf("Version: %s " SRUN_VERSION " (" SRUN_GIT_HASH "), Built on " SRUN_BUILD_TIME ".\n", prog_name);
-  puts("Configured with:");
+  puts("Default configurations:");
 #ifdef SRUN_CONF_AC_ID
   printf("  ac-id: %d\n", SRUN_CONF_AC_ID);
 #endif
 #ifdef SRUN_CONF_AUTH_URL
-  puts("  Auth server URL: " SRUN_CONF_AUTH_URL);
+  puts("  auth server URL: " SRUN_CONF_AUTH_URL);
 #endif
 #ifdef SRUN_CONF_DEFAULT_USERNAME
-  puts("  Default username: " SRUN_CONF_DEFAULT_USERNAME);
+  puts("  username: " SRUN_CONF_DEFAULT_USERNAME);
 #endif
 #ifdef SRUN_CONF_DEFAULT_PASSWORD
-  puts("  Default password set.");
+  puts("  password set.");
 #endif
 #ifdef SRUN_CONF_DEFAULT_CLIENT_IP
   puts("  Default client IP: " SRUN_CONF_DEFAULT_CLIENT_IP);
 #endif
 #ifdef SRUN_CONF_DEFAULT_CERT
-  // TODO show certificate info
-  puts("  Default CA certificate set.");
+  FILE *f = popen("openssl x509 -noout -subject -issuer -dates -fingerprint", "r+");
+  if (f) {
+    fputs(SRUN_CONF_DEFAULT_CERT, f);
+    puts("  CA certificate info:");
+    int c;
+    while ((c = fgetc(f)) != EOF) {
+      fputc(c, stdout);
+    }
+    pclose(f);
+  } else {
+    puts("  CA certificate set.\n  OpenSSL not found; skipping certificate info.");
+  }
 #endif
 }
 
@@ -92,6 +102,7 @@ static void print_help(void) {
   puts("  -p, --password=PASSWORD");
   puts("          use PASSWORD to login");
   puts("          If not specified, the program will ask interactively");
+  puts("          Password without username is not allowed and is ignored");
   puts("  -i, --client-ip=IP");
   puts("          use IP as the client IP");
   puts("  -a, --ac-id=ID");
@@ -139,6 +150,7 @@ static char *read_cert_file(const char *path) {
     cli_args.cert_pem = NULL;
     return NULL;
   }
+  fclose(f);
 
   if (!strstr(cli_args.cert_pem, "-----BEGIN CERTIFICATE-----")) {
     fprintf(stderr, "Invalid PEM certificate: %s\n", path);
@@ -206,6 +218,9 @@ static void parse_opt(int argc, char *const *argv) {
       case 'V':
         print_version();
         exit(0);
+      default:
+        fprintf(stderr, "Try `%s --help' for more information.\n", prog_name);
+        exit(-1);
     }
   }
 }
@@ -288,14 +303,14 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Invalid action: %s\n", action_str);
 no_action:
     fprintf(stderr, "Please specify action: login or logout.\n");
+help_guide:
     fprintf(stderr, "Try `%s --help' for more information.\n", prog_name);
     return -1;
   }
 
   if (!all_args_present) {
     fprintf(stderr, "Missing fields for %s.\n", action_str);
-    fprintf(stderr, "Try `%s --help' for more information.\n", prog_name);
-    return -1;
+    goto help_guide;
   }
 
   curl_global_init(CURL_GLOBAL_ALL);
