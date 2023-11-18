@@ -19,31 +19,37 @@ typedef enum srun_option {
    * Type: char *
    */
   SRUNOPT_AUTH_SERVER,
+
   /**
    * Username. Required for login.
    * Type: char *
    */
   SRUNOPT_USERNAME,
+
   /**
    * Password. Required for login.
    * Type: char *
    */
   SRUNOPT_PASSWORD,
+
   /**
    * AC_ID. Required for login. This is usually found in the login page URL or hidden input.
    * Type: int
    */
   SRUNOPT_AC_ID,
+
   /**
    * Server certificate. Required if the server uses HTTPS. PEM format. This field is NOT copied.
    * Type: const char *
    */
   SRUNOPT_SERVER_CERT,
+
   /**
    * Client IP. Optional for login. Leave unset to use the default assigned IP.
    * Type: char *
    */
   SRUNOPT_CLIENT_IP,
+
   /**
    * Verbose mode. Optional. Default to 0.
    * Type: int
@@ -55,10 +61,12 @@ typedef enum srun_option {
  * Success.
  */
 #define SRUNE_OK 0
+
 /**
  * Network error.
  */
 #define SRUNE_NETWORK (-1)
+
 /**
  * Invalid context (missing fields).
  */
@@ -80,6 +88,7 @@ void srun_setopt(srun_handle handle, srun_option option, ...);
  * @param value
  */
 #define srun_setopt(handle, option, value) srun_setopt(handle, option, value)
+
 /**
  * Perform login. The username, password, auth server and ac_id must be set.
  *
@@ -88,6 +97,7 @@ void srun_setopt(srun_handle handle, srun_option option, ...);
  *         gateway error code or library defined error code otherwise
  */
 int srun_login(srun_handle handle);
+
 /**
  * Logout from this session.
  *
@@ -99,6 +109,7 @@ int srun_login(srun_handle handle);
  *         SRUNE_NETWORK if network error
  */
 int srun_logout(srun_handle handle);
+
 /**
  * Free all allocated resources held by this handle. You are encouraged to set handle to NULL after this call.
  *

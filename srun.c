@@ -194,7 +194,7 @@ static size_t url_encode(char **str) {
     if (isalnum((int)*src_ptr) || strchr("-._~", *src_ptr)) {
       new_str[dest_pos++] = *src_ptr;
     } else {
-      dest_pos += snprintf(new_str + dest_pos, new_dest_len + 1 - dest_pos, "%%%02hhX", *src_ptr);
+      dest_pos += snprintf(new_str + dest_pos, new_dest_len + 1 - dest_pos, "%%%02hhX", (uint8_t)*src_ptr);
     }
   }
   new_str[new_dest_len] = 0;
@@ -284,8 +284,8 @@ int srun_login(srun_handle handle) {
 
   const char *const CHAL_FMTSTR = "%s" PATH_GET_CHAL "?username=%s"
                                   "&ip=%s"
-                                  "&callback=jQuery_%d_%ld000"
-                                  "&_=%ld000";
+                                  "&callback=jQuery_%d_%lu000"
+                                  "&_=%lu000";
 
   size_t url_len = snprintf(NULL, 0, CHAL_FMTSTR, handle->auth_server, handle->username, handle->client_ip, randnum,
                             ctx_time, ctx_time);
@@ -389,7 +389,7 @@ int srun_login(srun_handle handle) {
                   strlen(handle->password), (const uint8_t *)chall, chall_length, (uint8_t *)md5_buf + md_len);
 #endif
   for (int i = 0; i < md_len; i++) {
-    snprintf(md5_buf + 2 * i, 3, "%02hhx", md5_buf[md_len + i]);
+    snprintf(md5_buf + 2 * i, 3, "%02hhx", (uint8_t)md5_buf[md_len + i]);
   }
 
 #ifndef ESP_PLATFORM
@@ -472,13 +472,13 @@ int srun_login(srun_handle handle) {
   mbedtls_md_free(&hashctx);
 #endif
   for (int i = 0; i < md_len; i++) {
-    snprintf(sha1_buf + 2 * i, 3, "%02hhx", sha1_buf[md_len + i]);
+    snprintf(sha1_buf + 2 * i, 3, "%02hhx", (uint8_t)sha1_buf[md_len + i]);
   }
 
   srun_log_v(handle, "sha1 = %s", sha1_buf);
 
-  const char *const PORTAL_FMTSTR = "%s" PATH_PORTAL "?callback=jQuery%d_%ld000"
-                                    "&_=%ld000"
+  const char *const PORTAL_FMTSTR = "%s" PATH_PORTAL "?callback=jQuery%d_%lu000"
+                                    "&_=%lu000"
                                     "&username=%s"
                                     "&password=%%7BMD5%%7D%s"
                                     "&ac_id=%d"

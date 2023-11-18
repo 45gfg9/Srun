@@ -8,7 +8,7 @@ project(srun C)
 project(srun VERSION 0.11)
 
 # uncomment these lines to provide default values
-# be aware password is stored in plain-text and can be exported easily
+# WARNING: password is stored in plain-text and can be dumped easily using `strings`
 #
 #set(SRUN_CONF_AC_ID 1)
 #set(SRUN_CONF_AUTH_URL "https://example.com")

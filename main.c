@@ -26,7 +26,7 @@ enum {
 
 static const char *prog_name;
 
-struct {
+static struct {
   char auth_server[64];
 
   char client_ip[64];
@@ -76,6 +76,7 @@ static void print_version(void) {
   if (f) {
     fputs(SRUN_CONF_DEFAULT_CERT, f);
     puts("  CA certificate info:");
+    rewind(f);
     int c;
     while ((c = fgetc(f)) != EOF) {
       fputc(c, stdout);
