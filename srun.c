@@ -275,6 +275,8 @@ int srun_login(srun_handle handle) {
   // first, retrieve challenge string
   // construct target url
 
+  // TODO: if ac-id is not set, do a request first, then determine the ac-id by 302 location
+
   if (!(handle->auth_server && handle->username && handle->password)) {
     return SRUNE_INVALID_CTX;
   }

@@ -25,7 +25,7 @@ add_executable(${PROJECT_NAME} srun.c main.c)
 find_package(Git)
 if (GIT_FOUND)
     execute_process(
-            COMMAND ${GIT_EXECUTABLE} log -1 --pretty=format:%h
+            COMMAND ${GIT_EXECUTABLE} describe --always --tags --dirty
             OUTPUT_VARIABLE SRUN_GIT_HASH
             OUTPUT_STRIP_TRAILING_WHITESPACE
             ERROR_QUIET
