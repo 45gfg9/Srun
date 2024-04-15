@@ -10,7 +10,6 @@ project(srun VERSION 0.11)
 # uncomment these lines to provide default values
 # WARNING: password is stored in plain-text and can be dumped easily using `strings`
 #
-#set(SRUN_CONF_AC_ID 1)
 #set(SRUN_CONF_AUTH_URL "https://example.com")
 #set(SRUN_CONF_DEFAULT_USERNAME "TanikazeAmane")
 #set(SRUN_CONF_DEFAULT_PASSWORD "p4ssw@rd")

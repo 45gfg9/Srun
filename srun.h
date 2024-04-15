@@ -33,12 +33,6 @@ typedef enum srun_option {
   SRUNOPT_PASSWORD,
 
   /**
-   * AC_ID. Required for login. This is usually found in the login page URL or hidden input.
-   * Type: int
-   */
-  SRUNOPT_AC_ID,
-
-  /**
    * Server certificate. Required if the server uses HTTPS. PEM format. This field is NOT copied.
    * Type: const char *
    */
@@ -90,7 +84,7 @@ void srun_setopt(srun_handle handle, srun_option option, ...);
 #define srun_setopt(handle, option, value) srun_setopt(handle, option, value)
 
 /**
- * Perform login. The username, password, auth server and ac_id must be set.
+ * Perform login. The username, password and auth server must be set.
  *
  * @param handle Srun handle
  * @return SRUNE_OK if logged in successfully or device already online;

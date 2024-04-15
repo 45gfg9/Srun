@@ -64,7 +64,6 @@ struct srun_context {
   char *client_ip;
   char *auth_server;
   const char *server_cert;
-  int ac_id;
 
   int verbosity;
 };
@@ -93,6 +92,97 @@ static size_t curl_null_write_cb(const void *ptr, size_t size, size_t nmemb, voi
   return size * nmemb;
 }
 #endif
+
+#ifdef ESP_PLATFORM
+static esp_err_t _ac_id_http_handler(esp_http_client_event_t *evt) {
+  if (evt->event_id == HTTP_EVENT_ON_HEADER) {
+    const char *ac_id = strstr(evt->header_value, "ac_id=");
+    if (strcasecmp(evt->header_key, "Location") == 0 && ac_id != NULL) {
+      *((int *)evt->user_data) = atoi(ac_id + 6);
+    }
+  }
+  return ESP_OK;
+}
+#endif
+
+static int get_ac_id(srun_handle handle, int *ac_id) {
+#ifdef ESP_PLATFORM
+  *ac_id = -1;
+
+  esp_http_client_config_t *config = calloc(1, sizeof(esp_http_client_config_t));
+
+  config->url = handle->auth_server;
+  config->method = HTTP_METHOD_GET;
+  config->cert_pem = handle->server_cert;
+  config->event_handler = _ac_id_http_handler;
+  config->user_data = ac_id;
+
+  esp_http_client_handle_t client = esp_http_client_init(config);
+  free(config);
+
+  int status_code;
+  do {
+    if (esp_http_client_open(client, 0) != ESP_OK) {
+      srun_log_e(handle, "Failed to open connection");
+      break;
+    }
+    esp_http_client_fetch_headers(client);
+    status_code = esp_http_client_get_status_code(client);
+    esp_http_client_set_redirection(client);
+    esp_http_client_close(client);
+    srun_log_v(handle, "status code: %d", status_code);
+  } while (status_code != 200 && *ac_id == -1);
+
+  esp_http_client_cleanup(client);
+
+  if (*ac_id == -1) {
+    return SRUNE_NETWORK;
+  }
+  return SRUNE_OK;
+#else
+  CURL *curl_handle = curl_easy_init();
+
+  char url_buf[512];
+  strlcpy(url_buf, handle->auth_server, sizeof url_buf);
+
+  int retval = 0;
+
+  while (1) {
+    curl_easy_setopt(curl_handle, CURLOPT_URL, url_buf);
+    curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, curl_null_write_cb);
+
+    CURLcode res = curl_easy_perform(curl_handle);
+    if (res != CURLE_OK) {
+      srun_log_e(handle, "Failed to fetch URL: %s", curl_easy_strerror(res));
+      retval = res;
+      break;
+    }
+
+    char *new_url;
+    curl_easy_getinfo(curl_handle, CURLINFO_REDIRECT_URL, &new_url);
+    if (!new_url) {
+      srun_log_e(handle, "No redirect URL found");
+      retval = CURLE_HTTP_RETURNED_ERROR;
+      break;
+    } else if (strcmp(new_url, url_buf) == 0) {
+      srun_log_e(handle, "Redirect loop detected");
+      retval = CURLE_HTTP_RETURNED_ERROR;
+      break;
+    } else {
+      char *ac_id_str = strstr(new_url, "ac_id=");
+      if (ac_id_str) {
+        *ac_id = atoi(ac_id_str + 6);
+        break;
+      } else {
+        strlcpy(url_buf, new_url, sizeof url_buf);
+      }
+    }
+  }
+
+  curl_easy_cleanup(curl_handle);
+  return retval;
+#endif
+}
 
 static size_t s_encode(const uint8_t *msg, size_t msg_len, uint32_t *dst, int append_len) {
   size_t i;
@@ -252,9 +342,6 @@ void srun_setopt(srun_handle handle, srun_option option, ...) {
       handle->password = realloc(handle->password, strlen(src_str) + 1);
       strcpy(handle->password, src_str);
       break;
-    case SRUNOPT_AC_ID:
-      handle->ac_id = va_arg(args, int);
-      break;
     case SRUNOPT_SERVER_CERT:
       handle->server_cert = va_arg(args, const char *);
       break;
@@ -275,11 +362,16 @@ int srun_login(srun_handle handle) {
   // first, retrieve challenge string
   // construct target url
 
-  // TODO: if ac-id is not set, do a request first, then determine the ac-id by 302 location
-
   if (!(handle->auth_server && handle->username && handle->password)) {
     return SRUNE_INVALID_CTX;
   }
+
+  int ac_id;
+  if (get_ac_id(handle, &ac_id) != 0) {
+    srun_log_e(handle, "Failed to get ac_id");
+    return SRUNE_NETWORK;
+  }
+  srun_log_v(handle, "acquired ac_id: %d", ac_id);
 
   unsigned long ctx_time = time(NULL);
   int randnum = rand();
@@ -331,11 +423,12 @@ int srun_login(srun_handle handle) {
   config->cert_pem = handle->server_cert;
   config->buffer_size_tx = 768;
   esp_http_client_handle_t client = esp_http_client_init(config);
+  free(config);
+  config = NULL;
 
   if (esp_http_client_open(client, 0) != ESP_OK) {
     srun_log_e(handle, "failed to open connection");
     esp_http_client_cleanup(client);
-    free(config);
     free(url_buf);
     return SRUNE_NETWORK;
   }
@@ -346,7 +439,6 @@ int srun_login(srun_handle handle) {
   if (status_code != 200) {
     srun_log_e(handle, "server responsed status code %d", status_code);
     esp_http_client_cleanup(client);
-    free(config);
     free(url_buf);
     return SRUNE_NETWORK;
   }
@@ -376,9 +468,9 @@ int srun_login(srun_handle handle) {
   cJSON_Delete(json);
   json = NULL;
 
-  buf_size = snprintf(NULL, 0, "%d", handle->ac_id);
+  buf_size = snprintf(NULL, 0, "%d", ac_id);
   char_buf = malloc(buf_size + 1);
-  snprintf(char_buf, buf_size + 1, "%d", handle->ac_id);
+  snprintf(char_buf, buf_size + 1, "%d", ac_id);
 
   char md5_buf[33];
   unsigned int md_len = sizeof md5_buf / 2;
@@ -495,10 +587,10 @@ int srun_login(srun_handle handle) {
                                     "&double_stack=0";
 
   url_len = snprintf(NULL, 0, PORTAL_FMTSTR, handle->auth_server, randnum, ctx_time, ctx_time, handle->username,
-                     md5_buf, handle->ac_id, handle->client_ip, sha1_buf, formatted);
+                     md5_buf, ac_id, handle->client_ip, sha1_buf, formatted);
   url_buf = malloc(url_len + 1);
   snprintf(url_buf, url_len + 1, PORTAL_FMTSTR, handle->auth_server, randnum, ctx_time, ctx_time, handle->username,
-           md5_buf, handle->ac_id, handle->client_ip, sha1_buf, formatted);
+           md5_buf, ac_id, handle->client_ip, sha1_buf, formatted);
 
   free(formatted);
   formatted = NULL;
@@ -528,7 +620,6 @@ int srun_login(srun_handle handle) {
   if (esp_http_client_open(client, 0) != ESP_OK) {
     srun_log_e(handle, "failed to open connection");
     esp_http_client_cleanup(client);
-    free(config);
     free(url_buf);
     return SRUNE_NETWORK;
   }
@@ -539,7 +630,6 @@ int srun_login(srun_handle handle) {
   if (status_code != 200) {
     srun_log_e(handle, "server responsed status code %d", status_code);
     esp_http_client_cleanup(client);
-    free(config);
     free(url_buf);
     return SRUNE_NETWORK;
   }
@@ -548,7 +638,6 @@ int srun_login(srun_handle handle) {
   esp_http_client_close(client);
   esp_http_client_cleanup(client);
 
-  free(config);
   free(url_buf);
   url_buf = NULL;
 #endif

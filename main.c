@@ -37,8 +37,6 @@ static struct {
 
   char *cert_pem;
 
-  int ac_id;
-
   // verbosity:
   // -2: completely silent, no error message
   // -1: silent, only print error message
@@ -56,9 +54,6 @@ static const char *pathToFilename(const char *path) {
 static void print_version(void) {
   printf("Version: %s " SRUN_VERSION " (" SRUN_GIT_HASH "), Built on " SRUN_BUILD_TIME ".\n", prog_name);
   puts("Default configurations:");
-#ifdef SRUN_CONF_AC_ID
-  printf("  ac-id: %d\n", SRUN_CONF_AC_ID);
-#endif
 #ifdef SRUN_CONF_AUTH_URL
   puts("  auth server URL: " SRUN_CONF_AUTH_URL);
 #endif
@@ -106,8 +101,6 @@ static void print_help(void) {
   puts("          Password without username is not allowed and is ignored");
   puts("  -i, --client-ip=IP");
   puts("          use IP as the client IP");
-  puts("  -a, --ac-id=ID");
-  puts("          use ID as the AC-ID");
   puts("  -c, --cert-file=FILE");
   puts("          use FILE as the PEM certificate");
   puts("  -q, --quiet");
@@ -169,7 +162,6 @@ static void parse_opt(int argc, char *const *argv) {
       {"auth-server", required_argument, NULL, 's'},
       {"username", required_argument, NULL, 'u'},
       {"password", required_argument, NULL, 'p'},
-      {"ac-id", required_argument, NULL, 'a'},
       {"client-ip", required_argument, NULL, 'i'},
       {"cert-file", required_argument, NULL, 'c'},
       {"quiet", no_argument, NULL, 'q'},
@@ -177,7 +169,7 @@ static void parse_opt(int argc, char *const *argv) {
       {"version", no_argument, NULL, 'V'},
       {},
   };
-  static const char *const SHORT_OPTS = "hf:s:u:p:a:i:c:qvV";
+  static const char *const SHORT_OPTS = "hf:s:u:p:i:c:qvV";
 
   int c;
   while ((c = getopt_long(argc, argv, SHORT_OPTS, LONG_OPTS, NULL)) != -1) {
@@ -196,9 +188,6 @@ static void parse_opt(int argc, char *const *argv) {
         break;
       case 'p':
         strlcpy(cli_args.password, optarg, sizeof cli_args.password);
-        break;
-      case 'a':
-        cli_args.ac_id = (int)strtol(optarg, NULL, 10);
         break;
       case 'i':
         strlcpy(cli_args.client_ip, optarg, sizeof cli_args.client_ip);
@@ -263,9 +252,6 @@ int main(int argc, char **argv) {
   srand(time(NULL));
 
   // provide default values
-#ifdef SRUN_CONF_AC_ID
-  cli_args.ac_id = SRUN_CONF_AC_ID;
-#endif
 #ifdef SRUN_CONF_AUTH_URL
   strlcpy(cli_args.auth_server, SRUN_CONF_AUTH_URL, sizeof cli_args.auth_server);
 #endif
@@ -293,13 +279,10 @@ int main(int argc, char **argv) {
   parse_opt(argc, argv);
 
   int action;
-  int all_args_present;
   if (strcmp(action_str, "login") == 0) {
     action = ACTION_LOGIN;
-    all_args_present = cli_args.auth_server[0] && cli_args.ac_id;
   } else if (strcmp(action_str, "logout") == 0) {
     action = ACTION_LOGOUT;
-    all_args_present = cli_args.auth_server[0];
   } else {
     fprintf(stderr, "Invalid action: %s\n", action_str);
 no_action:
@@ -309,7 +292,7 @@ help_guide:
     return -1;
   }
 
-  if (!all_args_present) {
+  if (!cli_args.auth_server[0]) {
     fprintf(stderr, "Missing fields for %s.\n", action_str);
     goto help_guide;
   }
@@ -320,7 +303,6 @@ help_guide:
   srun_setopt(handle, SRUNOPT_AUTH_SERVER, cli_args.auth_server);
   srun_setopt(handle, SRUNOPT_USERNAME, cli_args.username);
   srun_setopt(handle, SRUNOPT_PASSWORD, cli_args.password);
-  srun_setopt(handle, SRUNOPT_AC_ID, cli_args.ac_id);
   srun_setopt(handle, SRUNOPT_CLIENT_IP, cli_args.client_ip);
   srun_setopt(handle, SRUNOPT_SERVER_CERT, cli_args.cert_pem);
   srun_setopt(handle, SRUNOPT_VERBOSITY, cli_args.verbosity);

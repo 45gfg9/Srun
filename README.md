@@ -13,7 +13,7 @@ Dependencies:
 - cJSON
 
 ```sh
-sudo apt install cmake openssl libbsd-dev libcurl4-openssl-dev libcjson-dev
+sudo apt install cmake openssl libssl-dev libbsd-dev libcurl4-openssl-dev libcjson-dev
 cmake -B cmake-build -DCMAKE_BUILD_TYPE=RelWithDebInfo  # or Release, at your choice
 cmake --build cmake-build --config RelWithDebInfo
 ```
@@ -31,7 +31,6 @@ The ESP32 version uses Mbed TLS library comes along with ESP-IDF. The source sho
 ```c
 srun_handle handle = srun_create();
 srun_setopt(handle, SRUNOPT_AUTH_SERVER, "auth server URL");
-srun_setopt(handle, SRUNOPT_AC_ID, 1);
 srun_setopt(handle, SRUNOPT_USERNAME, "username");
 srun_setopt(handle, SRUNOPT_PASSWORD, "password");
 srun_setopt(handle, SRUNOPT_SERVER_CERT, "auth server certificate (PEM format)"); // explained below
@@ -60,4 +59,4 @@ srun_cleanup(handle);
 handle = NULL;
 ```
 
-Username, password and ac_id are not needed when logging out. The same context used for login may be reused.
+Username and password are not needed when logging out. The same context used for login may be reused.
