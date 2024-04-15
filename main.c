@@ -67,7 +67,7 @@ static void print_version(void) {
   puts("  Default client IP: " SRUN_CONF_DEFAULT_CLIENT_IP);
 #endif
 #ifdef SRUN_CONF_DEFAULT_CERT
-  FILE *f = popen("openssl x509 -noout -subject -issuer -dates -fingerprint", "r+");
+  FILE *f = popen("openssl x509 -noout -subject -issuer -dates -fingerprint -in /dev/stdin", "r+");
   if (f) {
     fputs(SRUN_CONF_DEFAULT_CERT, f);
     puts("  CA certificate info:");
