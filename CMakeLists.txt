@@ -5,7 +5,7 @@
 
 cmake_minimum_required(VERSION 3.20)
 project(srun C)
-project(srun VERSION 0.11)
+project(srun VERSION 0.12)
 
 # uncomment these lines to provide default values
 # WARNING: password is stored in plain-text and can be dumped easily using `strings`
@@ -30,8 +30,10 @@ if (GIT_FOUND)
             ERROR_QUIET
             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
-else ()
-    set(SRUN_GIT_HASH "unknown")
+endif ()
+
+if (NOT SRUN_GIT_HASH)
+    set (SRUN_GIT_HASH "unknown")
 endif ()
 
 if (APPLE)
