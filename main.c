@@ -4,8 +4,16 @@
  * as published by Sam Hocevar. See the LICENSE file for more details.
  */
 
-#include "srun.h"
 #include "srun_config.h"
+
+#ifdef SRUN_CONF_DEFAULT_CERT
+#if (defined _POSIX_C_SOURCE) && (_POSIX_C_SOURCE < 2)
+#undef _POSIX_C_SOURCE
+#endif
+#define _POSIX_C_SOURCE 2
+#endif
+
+#include "srun.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

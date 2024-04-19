@@ -147,8 +147,9 @@ static int get_ac_id(srun_handle handle, int *ac_id) {
 #else
   CURL *curl_handle = curl_easy_init();
 
+  // assume 512 bytes is enough for the URL
   char url_buf[512];
-  strlcpy(url_buf, handle->auth_server, sizeof url_buf);
+  strcpy(url_buf, handle->auth_server);
 
   int retval = 0;
 
@@ -174,12 +175,12 @@ static int get_ac_id(srun_handle handle, int *ac_id) {
       retval = CURLE_HTTP_RETURNED_ERROR;
       break;
     } else {
-      char *ac_id_str = strstr(new_url, "ac_id=");
+      const char *ac_id_str = strstr(new_url, "ac_id=");
       if (ac_id_str) {
         *ac_id = atoi(ac_id_str + 6);
         break;
       } else {
-        strlcpy(url_buf, new_url, sizeof url_buf);
+        strcpy(url_buf, new_url);
       }
     }
   }
@@ -222,12 +223,17 @@ static size_t x_encode(const uint8_t *src, size_t src_len, const uint8_t *key, s
     return 0;
   }
 
+  if (key_len < 16) {
+    fputs("FATAL: server challenge too short", stderr);
+    abort();
+  }
+
   uint32_t n = src_len / 4 + (src_len % 4 != 0) + 1;
   uint32_t *encoded_msg = (uint32_t *)calloc(n, sizeof(uint32_t));
   uint32_t *encoded_key = (uint32_t *)calloc(4, sizeof(uint32_t));
 
   s_encode(src, src_len, encoded_msg, 1);
-  s_encode(key, 16, encoded_key, 0); // assert key_len >= 16
+  s_encode(key, 16, encoded_key, 0);
 
   uint32_t z = encoded_msg[n - 1];
   uint32_t d = 0;
@@ -265,7 +271,7 @@ static size_t b64_encode(const uint8_t *src, size_t src_len, char *dst, size_t d
           "LVoJPiCN2R8G90yg+hmFHuacZ1OWMnrsSTXkYpUq/3dlbfKwv6xztjI7DeBE45QA"[(n >> (18 - j * 6)) & 0x3f];
     }
   }
-  for (size_t i = 0; i < (src_len % 3 != 0) + (src_len % 3 == 1); i++) {
+  for (int i = 0; i < (src_len % 3 != 0) + (src_len % 3 == 1); i++) {
     dst[retlen - 2 - i] = '=';
   }
   dst[retlen - 1] = '\0';
@@ -484,7 +490,7 @@ int srun_login(srun_handle handle) {
   mbedtls_md_hmac(mbedtls_md_info_from_type(MBEDTLS_MD_MD5), (const uint8_t *)handle->password,
                   strlen(handle->password), (const uint8_t *)chall, chall_length, (uint8_t *)md5_buf + md_len);
 #endif
-  for (int i = 0; i < md_len; i++) {
+  for (unsigned int i = 0; i < md_len; i++) {
     snprintf(md5_buf + 2 * i, 3, "%02hhx", (uint8_t)md5_buf[md_len + i]);
   }
 
@@ -567,7 +573,7 @@ int srun_login(srun_handle handle) {
   mbedtls_md_finish(&hashctx, (uint8_t *)sha1_buf + md_len);
   mbedtls_md_free(&hashctx);
 #endif
-  for (int i = 0; i < md_len; i++) {
+  for (unsigned int i = 0; i < md_len; i++) {
     snprintf(sha1_buf + 2 * i, 3, "%02hhx", (uint8_t)sha1_buf[md_len + i]);
   }
 
