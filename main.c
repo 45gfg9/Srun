@@ -19,6 +19,12 @@
 #include <bsd/string.h>
 #endif
 
+#ifdef SRUN_GIT_HASH
+#define GIT_HASH_STR " (" SRUN_GIT_HASH ")"
+#else
+#define GIT_HASH_STR ""
+#endif
+
 enum {
   ACTION_LOGIN,
   ACTION_LOGOUT,
@@ -52,7 +58,7 @@ static const char *pathToFilename(const char *path) {
 }
 
 static void print_version(void) {
-  printf("Version: %s " SRUN_VERSION " (" SRUN_GIT_HASH "), Built on " SRUN_BUILD_TIME ".\n", prog_name);
+  printf("Version: %s " SRUN_VERSION GIT_HASH_STR ", Built on " SRUN_BUILD_TIME ".\n", prog_name);
   puts("Default configurations:");
 #ifdef SRUN_CONF_AUTH_URL
   puts("  auth server URL: " SRUN_CONF_AUTH_URL);

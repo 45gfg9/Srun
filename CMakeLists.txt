@@ -32,10 +32,6 @@ if (GIT_FOUND)
     )
 endif ()
 
-if (NOT SRUN_GIT_HASH)
-    set (SRUN_GIT_HASH "unknown")
-endif ()
-
 if (APPLE)
     # have to handle OpenSSL on macOS to use Homebrew version
     find_package(OpenSSL QUIET)
