@@ -255,7 +255,15 @@ static int perform_logout(srun_handle handle) {
 }
 
 int main(int argc, char **argv) {
+  // we only use random number for the jQuery callback id,
+  // so srand(time(NULL)) is enough
   srand(time(NULL));
+
+  prog_name = pathToFilename(argv[0]);
+
+  if (argc == 1) {
+    goto no_action;
+  }
 
   // provide default values
 #ifdef SRUN_CONF_AUTH_URL
@@ -275,11 +283,6 @@ int main(int argc, char **argv) {
   strlcpy(cli_args.client_ip, SRUN_CONF_DEFAULT_CLIENT_IP, sizeof cli_args.client_ip);
 #endif
 
-  prog_name = pathToFilename(argv[0]);
-
-  if (argc == 1) {
-    goto no_action;
-  }
   const char *action_str = argv[1];
 
   parse_opt(argc, argv);
@@ -295,6 +298,7 @@ no_action:
     fprintf(stderr, "Please specify action: login or logout.\n");
 help_guide:
     fprintf(stderr, "Try `%s --help' for more information.\n", prog_name);
+    free(cli_args.cert_pem);
     return -1;
   }
 
