@@ -81,6 +81,7 @@ static void print_version(void) {
   puts("  Default client IP: " SRUN_CONF_DEFAULT_CLIENT_IP);
 #endif
 #ifdef SRUN_CONF_DEFAULT_CERT
+  // TODO: fork a child process, because on some systems popen() uses unidirectional pipe
   FILE *f = popen("openssl x509 -noout -subject -issuer -dates -fingerprint -in /dev/stdin", "r+");
   if (f) {
     fputs(SRUN_CONF_DEFAULT_CERT, f);
@@ -92,7 +93,7 @@ static void print_version(void) {
     }
     pclose(f);
   } else {
-    puts("  CA certificate set.\n  OpenSSL not found; skipping certificate info.");
+    puts("  CA certificate set.\n  popen() call failed; skipping certificate info.");
   }
 #endif
 }
@@ -267,6 +268,7 @@ int main(int argc, char **argv) {
   // so srand(time(NULL)) is enough
   srand(time(NULL));
 
+  int retval = -1;
   prog_name = pathToFilename(argv[0]);
 
   if (argc == 1) {
@@ -306,8 +308,7 @@ no_action:
     fprintf(stderr, "Please specify action: login or logout.\n");
 help_guide:
     fprintf(stderr, "Try `%s --help' for more information.\n", prog_name);
-    free(cli_args.cert_pem);
-    return -1;
+    goto exit_cleanup;
   }
 
   if (!cli_args.auth_server[0]) {
@@ -325,7 +326,6 @@ help_guide:
   srun_setopt(handle, SRUNOPT_SERVER_CERT, cli_args.cert_pem);
   srun_setopt(handle, SRUNOPT_VERBOSITY, cli_args.verbosity);
 
-  int retval = -1;
   if (action == ACTION_LOGIN) {
     retval = perform_login(handle) != SRUNE_OK;
   } else if (action == ACTION_LOGOUT) {
@@ -335,9 +335,12 @@ help_guide:
   srun_cleanup(handle);
   handle = NULL;
 
-  free(cli_args.cert_pem);
   curl_global_cleanup();
 
+  // yes, goto is bad, but there's really no elegant solution in C
+  // I know what I'm doing
+exit_cleanup:
+  free(cli_args.cert_pem);
   memset(&cli_args, 0, sizeof cli_args);
 
   return retval;
