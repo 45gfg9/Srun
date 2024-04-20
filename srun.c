@@ -36,10 +36,10 @@
   } while (0)
 
 #else
-#define LOG_LOCAL_LEVEL ESP_LOG_VERBOSE
-
-#include <cJSON.h>
+#include <esp_log.h>
 #include <esp_http_client.h>
+#include <esp_crt_bundle.h>
+#include <cJSON.h>
 #include <mbedtls/md.h>
 #include <esp_log.h>
 
@@ -47,15 +47,20 @@
 
 #define srun_digest_update(hashctx, data, len) mbedtls_md_update(&(hashctx), (const uint8_t *)(data), (len))
 
+// these macros are used for debugging only
+// you should NOT define ESP_LOG_LEVEL in this source
+// unless you are trying to contribute to the project!
 #define srun_log_e(ctx, fmt, ...) ESP_LOGE(SRUN_LOG_TAG, fmt, ##__VA_ARGS__)
 #define srun_log_v(ctx, fmt, ...) ESP_LOGV(SRUN_LOG_TAG, fmt, ##__VA_ARGS__)
 
 #endif
 
-#define new_snprintf_str(len_var, buf_var, ...) \
-  (len_var) = snprintf(NULL, 0, __VA_ARGS__);   \
-  (buf_var) = malloc((len_var) + 1);            \
-  snprintf((buf_var), (len_var) + 1, __VA_ARGS__);
+#define new_snprintf_str(len_var, buf_var, ...)      \
+  do {                                               \
+    (len_var) = snprintf(NULL, 0, __VA_ARGS__);      \
+    (buf_var) = realloc((buf_var), (len_var) + 1);   \
+    snprintf((buf_var), (len_var) + 1, __VA_ARGS__); \
+  } while (0)
 
 #define PATH_GET_CHAL "/cgi-bin/get_challenge"
 #define PATH_PORTAL "/cgi-bin/srun_portal"
@@ -71,6 +76,7 @@ struct srun_context {
   const char *server_cert;
 
   int verbosity;
+  int esp_use_crt_bundle;
 };
 
 static inline uint8_t checked_subscript(const uint8_t *arr, size_t arr_len, size_t idx) {
@@ -121,9 +127,13 @@ static int get_ac_id(srun_handle handle, int *ac_id) {
   config->cert_pem = handle->server_cert;
   config->event_handler = _ac_id_http_handler;
   config->user_data = ac_id;
+  if (handle->esp_use_crt_bundle == 1) {
+    config->crt_bundle_attach = esp_crt_bundle_attach;
+  }
 
   esp_http_client_handle_t client = esp_http_client_init(config);
   free(config);
+  config = NULL;
 
   int status_code;
   do {
@@ -147,8 +157,8 @@ static int get_ac_id(srun_handle handle, int *ac_id) {
 #else
   CURL *curl_handle = curl_easy_init();
 
-  // assume 512 bytes is enough for the URL
-  char url_buf[512];
+  // assume 1024 bytes is enough for the URL
+  char url_buf[1024];
   strcpy(url_buf, handle->auth_server);
 
   int retval = 0;
@@ -356,6 +366,9 @@ void srun_setopt(srun_handle handle, srun_option option, ...) {
     case SRUNOPT_SERVER_CERT:
       handle->server_cert = va_arg(args, const char *);
       break;
+    case SRUNOPT_USE_ESP_CRT_BUNDLE:
+      handle->esp_use_crt_bundle = va_arg(args, int);
+      break;
     case SRUNOPT_CLIENT_IP:
       src_str = va_arg(args, char *);
       handle->client_ip = realloc(handle->client_ip, strlen(src_str) + 1);
@@ -384,7 +397,7 @@ int srun_login(srun_handle handle) {
   }
   srun_log_v(handle, "acquired ac_id: %d", ac_id);
 
-  unsigned long ctx_time = time(NULL);
+  unsigned long ctx_time = (unsigned long)time(NULL);
   int randnum = rand();
 
   const char *const CHAL_FMTSTR = "%s" PATH_GET_CHAL "?username=%s"
@@ -393,11 +406,11 @@ int srun_login(srun_handle handle) {
                                   "&_=%lu000";
 
   size_t url_len;
-  char *url_buf;
+  char *url_buf = NULL;
   new_snprintf_str(url_len, url_buf, CHAL_FMTSTR, handle->auth_server, handle->username, handle->client_ip, randnum,
                    ctx_time, ctx_time);
 
-  srun_log_v(handle, "full URL: %s", url_buf);
+  srun_log_v(handle, "chall url: %s", url_buf);
 
 #ifndef ESP_PLATFORM
   CURL *curl_handle = curl_easy_init();
@@ -432,6 +445,9 @@ int srun_login(srun_handle handle) {
   config->method = HTTP_METHOD_GET;
   config->cert_pem = handle->server_cert;
   config->buffer_size_tx = 768;
+  if (handle->esp_use_crt_bundle == 1) {
+    config->crt_bundle_attach = esp_crt_bundle_attach;
+  }
   esp_http_client_handle_t client = esp_http_client_init(config);
   free(config);
   config = NULL;
@@ -576,7 +592,6 @@ int srun_login(srun_handle handle) {
   for (unsigned int i = 0; i < md_len; i++) {
     snprintf(sha1_buf + 2 * i, 3, "%02hhx", (uint8_t)sha1_buf[md_len + i]);
   }
-
   srun_log_v(handle, "sha1 = %s", sha1_buf);
 
   const char *const PORTAL_FMTSTR = "%s" PATH_PORTAL "?callback=jQuery%d_%lu000"
@@ -600,7 +615,7 @@ int srun_login(srun_handle handle) {
   free(formatted);
   formatted = NULL;
 
-  srun_log_v(handle, "full URL: %s", url_buf);
+  srun_log_v(handle, "portal url: %s", url_buf);
 #ifndef ESP_PLATFORM
   rewind(tmp_file);
   curl_easy_setopt(curl_handle, CURLOPT_URL, url_buf);
@@ -621,11 +636,12 @@ int srun_login(srun_handle handle) {
   fclose(tmp_file);
 #else
   esp_http_client_set_url(client, url_buf);
+  free(url_buf);
+  url_buf = NULL;
 
   if (esp_http_client_open(client, 0) != ESP_OK) {
     srun_log_e(handle, "failed to open connection");
     esp_http_client_cleanup(client);
-    free(url_buf);
     return SRUNE_NETWORK;
   }
 
@@ -635,16 +651,12 @@ int srun_login(srun_handle handle) {
   if (status_code != 200) {
     srun_log_e(handle, "server responsed status code %d", status_code);
     esp_http_client_cleanup(client);
-    free(url_buf);
     return SRUNE_NETWORK;
   }
   char_buf = malloc(buf_size + 1);
   esp_http_client_read_response(client, char_buf, buf_size);
   esp_http_client_close(client);
   esp_http_client_cleanup(client);
-
-  free(url_buf);
-  url_buf = NULL;
 #endif
 
   char_buf[buf_size] = 0;
@@ -653,6 +665,7 @@ int srun_login(srun_handle handle) {
 
   json = cJSON_Parse(strchr(char_buf, '{'));
   free(char_buf);
+  char_buf = NULL;
 
   int ret = SRUNE_OK;
   const char *errmsg = cJSON_GetObjectItem(json, "error_msg")->valuestring;

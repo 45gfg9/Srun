@@ -20,7 +20,8 @@ cmake --build cmake-build --config RelWithDebInfo
 
 ## Build for ESP32
 
-> ESP32 support is not fully tested yet, but it should work now.
+> [!WARNING]
+> While this library currently works on ESP32, it's not yet fully tested. Currently there are some known memory leaks, and should be used with caution, until this warning is removed.
 
 The ESP32 version uses Mbed TLS library comes along with ESP-IDF. The source should be able to detect this automatically.
 
@@ -34,6 +35,7 @@ srun_setopt(handle, SRUNOPT_AUTH_SERVER, "auth server URL");
 srun_setopt(handle, SRUNOPT_USERNAME, "username");
 srun_setopt(handle, SRUNOPT_PASSWORD, "password");
 srun_setopt(handle, SRUNOPT_SERVER_CERT, "auth server certificate (PEM format)"); // explained below
+srun_setopt(handle, SRUNOPT_USE_ESP_CRT_BUNDLE, 1); // set to 1 to use ESP x509 certificate bundle
 printf("login result: %d\n", srun_login(handle));
 srun_cleanup(handle);
 handle = NULL;
@@ -41,7 +43,7 @@ handle = NULL;
 
 The server CA certificate needs to be set if your auth server uses HTTPS, and if either:
 
-- you are running on ESP32
+- you are running on ESP32, and not using / certificate is not trusted by ESP x509 certificate bundle
 - your auth server uses a self-signed certificate (that is not trusted by your system's global CA store)
 
 For security concerns there is no option to skip certificate verification. Evaluate the risk before modifying the code yourself please.

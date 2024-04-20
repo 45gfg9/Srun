@@ -33,13 +33,24 @@ typedef enum srun_option {
   SRUNOPT_PASSWORD,
 
   /**
-   * Server certificate. Required if the server uses HTTPS. PEM format. This field is NOT copied.
+   * Server certificate. PEM format. This field is NOT copied.
+   * Required if the server uses HTTPS.
+   * On ESP32, see also SRUNOPT_USE_ESP_CRT_BUNDLE.
    * Type: const char *
    */
   SRUNOPT_SERVER_CERT,
 
   /**
-   * Client IP. Optional for login. Leave unset to use the default assigned IP.
+   * Set to 1 to use ESP x509 certificate bundle.
+   * This option is ignored, if SRUNOPT_SERVER_CERT is set.
+   * Setting this option on non-ESP platforms will have no effect.
+   * Type: int
+   */
+  SRUNOPT_USE_ESP_CRT_BUNDLE,
+
+  /**
+   * Client IP. Optional for login.
+   * Leave unset to use the default assigned IP.
    * Type: char *
    */
   SRUNOPT_CLIENT_IP,
