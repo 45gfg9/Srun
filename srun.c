@@ -227,15 +227,9 @@ static size_t s_decode(const uint32_t *msg, size_t msg_len, uint8_t *dst, size_t
   return retlen;
 }
 
-static size_t x_encode(const uint8_t *src, size_t src_len, const uint8_t *key, size_t key_len, uint8_t *dst,
-                       size_t dst_len) {
+static size_t x_encode(const uint8_t *src, size_t src_len, const uint8_t key[static 16], uint8_t *dst, size_t dst_len) {
   if (src_len == 0) {
     return 0;
-  }
-
-  if (key_len < 16) {
-    fputs("FATAL: server challenge too short", stderr);
-    abort();
   }
 
   uint32_t n = src_len / 4 + (src_len % 4 != 0) + 1;
@@ -245,10 +239,7 @@ static size_t x_encode(const uint8_t *src, size_t src_len, const uint8_t *key, s
   s_encode(src, src_len, encoded_msg, 1);
   s_encode(key, 16, encoded_key, 0);
 
-  uint32_t z = encoded_msg[n - 1];
-  uint32_t d = 0;
-
-  for (uint32_t q = 6 + 52 / n; q; q--) {
+  for (uint32_t d = 0, z = encoded_msg[n - 1], q = 6 + 52 / n; q; q--) {
     d += 0x9e3779b9;
     for (uint32_t p = 0; p < n; p++) {
       uint32_t y = encoded_msg[(p + 1) % n];
@@ -494,6 +485,11 @@ int srun_login(srun_handle handle) {
   cJSON_Delete(json);
   json = NULL;
 
+  if (chall_length < 16) {
+    fputs("FATAL: server challenge too short", stderr);
+    abort();
+  }
+
   new_snprintf_str(buf_size, char_buf, "%d", ac_id);
 
   char md5_buf[33];
@@ -556,7 +552,7 @@ int srun_login(srun_handle handle) {
   size_t info_len = (buf_size / 4 + (buf_size % 4 != 0) + 1) * 4;
   free(char_buf);
   char_buf = malloc(info_len); // x-encoded payload
-  x_encode((const uint8_t *)formatted, buf_size, (const uint8_t *)chall, chall_length, (uint8_t *)char_buf, info_len);
+  x_encode((const uint8_t *)formatted, buf_size, (const uint8_t *)chall, (uint8_t *)char_buf, info_len);
 
   cJSON_free(formatted);
   formatted = NULL;
