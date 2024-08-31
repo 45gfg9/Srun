@@ -78,7 +78,9 @@ static void print_version(void) {
 #ifdef SRUN_CONF_DEFAULT_CERT
   pid_t openssl_pid = fork();
 
-  if (openssl_pid == 0) {
+  if (openssl_pid == -1) {
+    perror("fork");
+  } else if (openssl_pid == 0) {
     puts("CA certificate info:");
     int pipefd[2];
     pipe(pipefd);
