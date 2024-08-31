@@ -4,6 +4,10 @@
  * as published by Sam Hocevar. See the LICENSE file for more details.
  */
 
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
 #include "srun.h"
 #include <stdio.h>
 #include <string.h>
