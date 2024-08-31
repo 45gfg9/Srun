@@ -6,18 +6,13 @@
 
 #include "srun_config.h"
 
-#ifdef SRUN_CONF_DEFAULT_CERT
-#if (defined _POSIX_C_SOURCE) && (_POSIX_C_SOURCE < 2)
-#undef _POSIX_C_SOURCE
-#endif
-#define _POSIX_C_SOURCE 2
-#endif
-
 #include "srun.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <getopt.h>
+#include <unistd.h>
+#include <sys/wait.h>
 #include <curl/curl.h>
 
 #if defined __APPLE__
@@ -81,26 +76,33 @@ static void print_version(void) {
   puts("  Default client IP: " SRUN_CONF_DEFAULT_CLIENT_IP);
 #endif
 #ifdef SRUN_CONF_DEFAULT_CERT
-  // TODO: fork a child process, because on some systems popen() uses unidirectional pipe
-  FILE *f = popen("openssl x509 -noout -subject -issuer -dates -fingerprint -in /dev/stdin", "r+");
-  if (f) {
-    fputs(SRUN_CONF_DEFAULT_CERT, f);
-    puts("  CA certificate info:");
-    rewind(f);
-    int c;
-    while ((c = fgetc(f)) != EOF) {
-      fputc(c, stdout);
-    }
-    pclose(f);
+  pid_t openssl_pid = fork();
+
+  if (openssl_pid == 0) {
+    puts("CA certificate info:");
+    int pipefd[2];
+    pipe(pipefd);
+    write(pipefd[1], SRUN_CONF_DEFAULT_CERT, sizeof SRUN_CONF_DEFAULT_CERT);
+    close(pipefd[1]);
+    dup2(pipefd[0], STDIN_FILENO);
+    close(pipefd[0]);
+    execlp("openssl", "openssl", "x509", "-noout", "-subject", "-issuer", "-dates", "-fingerprint", NULL);
+    puts("openssl not found in PATH; skipping certificate info.");
+    exit(EXIT_SUCCESS);
   } else {
-    puts("  CA certificate set.\n  popen() call failed; skipping certificate info.");
+    int status;
+    waitpid(openssl_pid, &status, 0);
+    if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+      fprintf(stderr, "openssl exited with status %d\n", status);
+      exit(EXIT_FAILURE);
+    }
   }
 #endif
 }
 
 static void print_help(void) {
   print_version();
-  printf("Usage: %s <login | logout> [options]\n", prog_name);
+  printf("\nUsage: %s <login | logout> [options]\n", prog_name);
   puts("Options:");
   puts("  -h, --help");
   puts("          print this help message and exit");
@@ -191,7 +193,7 @@ static void parse_opt(int argc, char *const *argv) {
     switch (c) {
       case 'h':
         print_help();
-        exit(0);
+        exit(EXIT_SUCCESS);
       case 'f':
         parse_config(optarg);
         break;
@@ -222,7 +224,7 @@ static void parse_opt(int argc, char *const *argv) {
         break;
       case 'V':
         print_version();
-        exit(0);
+        exit(EXIT_SUCCESS);
       default:
         fprintf(stderr, "Try `%s --help' for more information.\n", prog_name);
         exit(-1);
