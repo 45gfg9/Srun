@@ -55,13 +55,6 @@
 
 #endif
 
-#define new_snprintf_str(len_var, buf_var, ...)      \
-  do {                                               \
-    (len_var) = snprintf(NULL, 0, __VA_ARGS__);      \
-    (buf_var) = realloc((buf_var), (len_var) + 1);   \
-    snprintf((buf_var), (len_var) + 1, __VA_ARGS__); \
-  } while (0)
-
 #define PATH_GET_CHAL "/cgi-bin/get_challenge"
 #define PATH_PORTAL "/cgi-bin/srun_portal"
 
@@ -396,10 +389,9 @@ int srun_login(srun_handle handle) {
                                   "&callback=jQuery_%d_%lu000"
                                   "&_=%lu000";
 
-  size_t url_len;
   char *url_buf = NULL;
-  new_snprintf_str(url_len, url_buf, CHAL_FMTSTR, handle->auth_server, handle->username, handle->client_ip, randnum,
-                   ctx_time, ctx_time);
+  asprintf(&url_buf, CHAL_FMTSTR, handle->auth_server, handle->username, handle->client_ip, randnum, ctx_time,
+           ctx_time);
 
   srun_log_v(handle, "chall url: %s", url_buf);
 
@@ -414,7 +406,10 @@ int srun_login(srun_handle handle) {
 
   if (handle->server_cert) {
     struct curl_blob cert_blob = {
-        .data = (void *)handle->server_cert, .len = strlen(handle->server_cert), .flags = CURL_BLOB_NOCOPY};
+        .data = (void *)handle->server_cert,
+        .len = strlen(handle->server_cert),
+        .flags = CURL_BLOB_NOCOPY,
+    };
     curl_easy_setopt(curl_handle, CURLOPT_CAINFO_BLOB, &cert_blob);
   }
 
@@ -490,7 +485,7 @@ int srun_login(srun_handle handle) {
     abort();
   }
 
-  new_snprintf_str(buf_size, char_buf, "%d", ac_id);
+  asprintf(&char_buf, "%d", ac_id);
 
   char md5_buf[33];
   unsigned int md_len = sizeof md5_buf / 2;
@@ -605,8 +600,8 @@ int srun_login(srun_handle handle) {
                                     "&name=Linux"
                                     "&double_stack=0";
 
-  new_snprintf_str(url_len, url_buf, PORTAL_FMTSTR, handle->auth_server, randnum, ctx_time, ctx_time, handle->username,
-                   md5_buf, ac_id, handle->client_ip, sha1_buf, formatted);
+  asprintf(&url_buf, PORTAL_FMTSTR, handle->auth_server, randnum, ctx_time, ctx_time, handle->username, md5_buf, ac_id,
+           handle->client_ip, sha1_buf, formatted);
 
   free(formatted);
   formatted = NULL;
@@ -687,11 +682,10 @@ int srun_logout(srun_handle handle) {
 
   const char *const LOGOUT_FMTSTR = "%s" PATH_PORTAL "?action=logout";
 
-  size_t buf_size;
-  char *url_buf;
+  char *url_buf = NULL;
 #ifndef ESP_PLATFORM
   CURL *curl_handle = curl_easy_init();
-  new_snprintf_str(buf_size, url_buf, LOGOUT_FMTSTR, handle->auth_server);
+  asprintf(&url_buf, LOGOUT_FMTSTR, handle->auth_server);
 
   curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, curl_null_write_cb);
   curl_easy_setopt(curl_handle, CURLOPT_URL, url_buf);
@@ -707,7 +701,7 @@ int srun_logout(srun_handle handle) {
     return SRUNE_NETWORK;
   }
 #else
-  new_snprintf_str(buf_size, url_buf, LOGOUT_FMTSTR, handle->auth_server);
+  asprintf(&url_buf, LOGOUT_FMTSTR, handle->auth_server);
 
   esp_http_client_config_t *config = calloc(1, sizeof(esp_http_client_config_t));
   config->url = url_buf;
