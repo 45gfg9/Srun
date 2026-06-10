@@ -402,6 +402,39 @@ static int get_ac_id(const_srun_handle handle) {
       free(location);
       location = new_url;
     }
+
+    if (!location) {
+      // some implementations use <meta http-equiv="refresh">, so try that
+      srun_log_debug(handle->verbosity, "No Location header, trying to parse meta refresh\n");
+      char *body = request_get_body(handle, url);
+      if (body) {
+        char *refresh_loc = strstr(body, "http-equiv=\"refresh\"");
+        if (refresh_loc) {
+          char *url_loc = strcasestr(refresh_loc, "url=");
+          if (url_loc) {
+            // skip "url="
+            url_loc += 4;
+            char *url_end = strpbrk(url_loc, "\"' \t\r\n");
+            if (url_end) {
+              *url_end = '\0';
+            }
+            // replace possible &amp;
+            for (char *p = url_loc; p && *p;) {
+              p = strstr(p, "&amp;");
+              if (p) {
+                memmove(p + 1, p + 5, strlen(p + 5) + 1);
+              }
+            }
+            char *new_url = url_concat(url, url_loc);
+            if (new_url) {
+              location = new_url;
+            }
+          }
+        }
+        free(body);
+      }
+    }
+
     free(url);
 
     if (!location) {
@@ -413,7 +446,7 @@ static int get_ac_id(const_srun_handle handle) {
     char *query = strchr(location, '?');
     if (query) {
       *query = '&'; // for easier parsing if ?ac_id=
-      char *ac_id_str = strstr(query, "&ac_id=");
+      char *ac_id_str = strcasestr(query, "&ac_id=");
       if (ac_id_str) {
         int ac_id = (int)strtol(ac_id_str + 7, NULL, 10);
         free(location);
@@ -668,7 +701,7 @@ nomem_free_ip:
     return retval;
   }
 
-  if (strcmp(resp.error, "logout_ok") == 0 || strcmp(resp.error, "not_online_error") == 0) {
+  if (strcmp(resp.error, "ok") == 0 || strcmp(resp.error, "not_online_error") == 0) {
     // logout successful
     free_portal_response(&resp);
     return SRUNE_OK;
