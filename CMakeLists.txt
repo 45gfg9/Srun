@@ -5,7 +5,7 @@
 
 cmake_minimum_required(VERSION 3.20)
 project(srun C)
-project(srun VERSION 1.0.0)
+project(srun VERSION 1.1.0)
 
 set(SRUN_CRYPTO "openssl" CACHE STRING "The crypto library to use")
 set_property(CACHE SRUN_CRYPTO PROPERTY STRINGS "openssl" "mbedtls" "self")
