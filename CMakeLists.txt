@@ -24,6 +24,10 @@ target_compile_options(${PROJECT_NAME} PRIVATE
     $<$<AND:$<CONFIG:Debug>,$<PLATFORM_ID:Linux>>:-fsanitize=leak>
     $<$<CONFIG:Release>:-O3>
 )
+target_link_options(${PROJECT_NAME} PRIVATE
+    $<$<CONFIG:Debug>:-fsanitize=address,undefined>
+    $<$<AND:$<CONFIG:Debug>,$<PLATFORM_ID:Linux>>:-fsanitize=leak>
+)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}"
